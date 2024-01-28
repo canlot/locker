@@ -10,6 +10,6 @@ type Login struct {
 	CreateTime          time.Time
 }
 
-func AddLogin() {
+func AddLogin(name, password string) {
 
 }
