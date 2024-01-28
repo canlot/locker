@@ -1,9 +1,12 @@
 package internals
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/boltdb/bolt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/scrypt"
+	"main/cryptography"
 	"time"
 )
 
@@ -63,4 +66,15 @@ func CreateFirstLoginWithRSAKeys(username, password string) error {
 		return err
 	}
 	u := uuid.New()
+
+	login := Login{Login: username, CreateTime: createTime}
+	loginByte, err := json.Marshal(login)
+	if err != nil {
+		return err
+	}
+	privateKey, publicKey, err := cryptography.GenerateRSAKeys()
+	if err != nil {
+		return err
+	}
+
 }

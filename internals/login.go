@@ -5,9 +5,8 @@ import (
 )
 
 type Login struct {
-	Login               string
-	PrivateKeyEncrypted []byte
-	CreateTime          time.Time
+	Login      string
+	CreateTime time.Time
 }
 
 func AddLogin(name, password string) {
