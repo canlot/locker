@@ -1,4 +1,4 @@
-package internals
+package cryptography
 
 func CreateRSAKeys() {
 
