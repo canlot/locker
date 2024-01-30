@@ -6,7 +6,13 @@ package add
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"main/internals"
 )
+
+var loginFlag string
+var passwordFlag string
+var loginNewFlag string
+var passwordNewFlag string
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
@@ -14,17 +20,50 @@ var loginCmd = &cobra.Command{
 	Short: "Adds new login, username can be empty",
 	Long: `Adds new login, that login will encrypt private key
 	Example:
-		locker add login user
-		locker add login
-		username can stay empty.`,
+		locker add login user --newlogin newuser --newpassword password12345
+		locker add login user --login newuser --password password12345 --newlogin newuser2 --newpassword password98765
+		`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("login called")
+		empty, err := internals.IsDatabaseEmpty()
+		if err != nil {
+			fmt.Println("Internal error occur: " + err.Error())
+			return
+		}
+		if (loginFlag == "" || passwordFlag == "") && !empty {
+			fmt.Println("Database is not empty, existing login and password must be provided")
+			return
+		}
+		if empty {
+			err = internals.CreateFirstLoginWithRSAKeys(loginNewFlag, passwordNewFlag)
+			if err != nil {
+				fmt.Println("Error occured at creation of first login: " + err.Error())
+				return
+			} else {
+				fmt.Println("First login successful added")
+				return
+			}
+		} else {
+			err = internals.CreateLoginWithExistingRSAKeys(loginFlag, passwordFlag, loginNewFlag, passwordNewFlag)
+			if err != nil {
+				fmt.Println("Error occured at creation of login: " + err.Error())
+				return
+			} else {
+				fmt.Println("Login succesfull added")
+			}
+		}
 	},
 }
 
 func init() {
+	loginCmd.Flags().StringVar(&loginFlag, "login", "", "Login name")
+	loginCmd.Flags().StringVar(&passwordFlag, "password", "", "Password for login")
+	loginCmd.Flags().StringVar(&loginNewFlag, "newlogin", "", "New login name")
+	loginCmd.Flags().StringVar(&passwordNewFlag, "newpassword", "", "Password for new login")
+	loginCmd.MarkFlagRequired("newlogin")
+	loginCmd.MarkFlagRequired("newpassword")
 	AddCmd.AddCommand(loginCmd)
+
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

@@ -1,7 +1,7 @@
 package internals
 
 import (
-	"github.com/boltdb/bolt"
+	bolt "go.etcd.io/bbolt"
 	"log"
 )
 
@@ -19,7 +19,8 @@ const PublicKeyKeyName = "PublicKey"
 const PrivateKeyHashKeyName = "PrivateKeyHash"
 
 func init() {
-	Database, err := bolt.Open("locker.db", 0600, nil)
+	var err error
+	Database, err = bolt.Open("locker.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/boltdb/bolt"
+	"fmt"
 	"github.com/google/uuid"
+	bolt "go.etcd.io/bbolt"
 	"main/cryptography"
 	"time"
 )
@@ -15,10 +16,15 @@ type DBStore struct {
 
 var Store DBStore
 
-func (s DBStore) IsDatabaseEmpty() (bool, error) {
+func IsDatabaseEmpty() (bool, error) {
+	fmt.Println("IsDatabaseEmpty")
 	var err error
+	if Database == nil {
+		fmt.Println("Database is nil")
+	}
 	tx, err := Database.Begin(false)
-	tx.Commit()
+	defer fmt.Println("IsDatabaseEmpty Commited")
+	defer tx.Rollback()
 	if err != nil {
 		return false, err
 	}
@@ -60,6 +66,7 @@ func IsBucketEmpty(tx *bolt.Tx, bucketName string) (bool, error) {
 	return true, nil
 }
 func CreateFirstLoginWithRSAKeys(username, password string) error {
+	fmt.Println("CreateFirstLoginWithRSAKeys")
 	createTime := time.Now()
 	passwordHash, err := cryptography.GenerateUserHash([]byte(password))
 	if err != nil {
@@ -76,10 +83,13 @@ func CreateFirstLoginWithRSAKeys(username, password string) error {
 		return err
 	}
 	privateKey, publicKey, err := cryptography.GenerateRSAKeys()
+	fmt.Printf("private key: %x\n", privateKey)
+	fmt.Printf("public key: %x\n", publicKey)
 	if err != nil {
 		return err
 	}
 	privateKeyHash, err := cryptography.GetSha256Hash(privateKey)
+	fmt.Printf("private key hash: %x\n", privateKeyHash)
 	if err != nil {
 		return err
 	}
@@ -115,10 +125,13 @@ func CreateFirstLoginWithRSAKeys(username, password string) error {
 		tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
 	return nil
 }
 func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLogin, newLoginPassword string) error {
+	fmt.Println("CreateLoginWithExistingRSAKeys")
 	tx, err := Database.Begin(true)
 	if err != nil {
 		tx.Rollback()
@@ -167,6 +180,8 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 	}
 
 	decryptedPrivateKey, err := cryptography.DecryptDataSymmetric([]byte(passwordHashExistingLogin), privateKeyEncrypted)
+	fmt.Printf("private key: %x\n", decryptedPrivateKey)
+
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -176,6 +191,7 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 		tx.Rollback()
 		return err
 	}
+	fmt.Printf("private key hash: %x\n", generatedPrivateKeyHash)
 	if bytes.Equal(generatedPrivateKeyHash, privateKeyHash) != true {
 		tx.Rollback()
 		return errors.New("Private keys do not match, wrong password for existing login: " + existingLogin)
@@ -211,4 +227,8 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 	}
 	tx.Commit()
 	return nil
+}
+
+func ListAllUsers() {
+
 }
