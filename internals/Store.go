@@ -229,6 +229,28 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 	return nil
 }
 
-func ListAllUsers() {
+func ListAllUsers() (output string, err error) {
+	tx, err := Database.Begin(false)
+	defer tx.Rollback()
+	if err != nil {
+		return "", err
+	}
+	loginInfoBucket := tx.Bucket([]byte(BucketLoginInformation))
+	if loginInfoBucket == nil {
+		return "", err
+	}
+	c := loginInfoBucket.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var login Login
+		err = json.Unmarshal(v, &login)
+		if err != nil {
+			return "", err
+		}
+		output += "login: " + login.Login + "   " + "creation time: " + login.CreateTime.String() + "\n"
 
+	}
+	return output, nil
+}
+func DecryptData(login, password, name, data string) error {
+	return errors.New("Not implemented")
 }

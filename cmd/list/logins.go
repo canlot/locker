@@ -1,30 +1,33 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 */
-package show
+package list
 
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"main/internals"
 )
 
 // loginsCmd represents the logins command
 var loginsCmd = &cobra.Command{
 	Use:   "logins",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Lists all logins",
+	Long:  `Lists all logins with the login name and create date and time.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("logins called")
+		output, err := internals.ListAllUsers()
+		if err != nil {
+			fmt.Println("Error occured")
+			return
+		} else {
+			fmt.Println(output)
+		}
+
 	},
 }
 
 func init() {
-	ShowCmd.AddCommand(loginsCmd)
+	ListCmd.AddCommand(loginsCmd)
 
 	// Here you will define your flags and configuration settings.
 
