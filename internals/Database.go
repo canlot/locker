@@ -15,6 +15,9 @@ const BucketDataPasswordEncrypted = "BucketDataPasswordEncrypted"
 const BucketDataInformation = "BucketDataInformation"
 const BucketDataEncrypted = "BucketDataEncrypted"
 
+const PublicKeyKeyName = "PublicKey"
+const PrivateKeyHashKeyName = "PrivateKeyHash"
+
 func init() {
 	Database, err := bolt.Open("locker.db", 0600, nil)
 	if err != nil {
