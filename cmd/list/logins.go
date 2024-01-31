@@ -5,6 +5,8 @@ package list
 
 import (
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 	"main/internals"
 )
@@ -15,12 +17,18 @@ var loginsCmd = &cobra.Command{
 	Short: "Lists all logins",
 	Long:  `Lists all logins with the login name and create date and time.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		output, err := internals.ListAllUsers()
+		logins, err := internals.ListAllUsers()
 		if err != nil {
 			fmt.Println("Error occured")
 			return
 		} else {
-			fmt.Println(output)
+			tbl := table.New("Login", "Creation time")
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			tbl.WithHeaderFormatter(headerFmt)
+			for _, login := range logins {
+				tbl.AddRow(login.Login, login.CreateTime)
+			}
+			tbl.Print()
 		}
 
 	},

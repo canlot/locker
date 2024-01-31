@@ -14,6 +14,11 @@ import (
 type DBStore struct {
 }
 
+type Data struct {
+	Label      string
+	CreateTime time.Time
+}
+
 var Store DBStore
 
 func IsDatabaseEmpty() (bool, error) {
@@ -147,39 +152,23 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 		tx.Rollback()
 		return err
 	}
-	loginInformationBucket := tx.Bucket([]byte(BucketLoginInformation))
-	c := loginInformationBucket.Cursor()
 
-	var userid []byte
-	for k, v := c.First(); k != nil; k, v = c.Next() {
-		var login Login
-		err = json.Unmarshal(v, &login)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-		if login.Login == existingLogin {
-			userid = k
-		}
-	}
-	if userid == nil {
+	userid, err := getLoginId(existingLogin, tx)
+	if err != nil {
 		tx.Rollback()
-		return errors.New("No existing login found: " + existingLogin)
-	}
-	loginPrivateKeyBucket := tx.Bucket([]byte(BucketLoginPrivateKeyEncrypted))
-	privateKeyEncrypted := loginPrivateKeyBucket.Get(userid)
-	if privateKeyEncrypted == nil {
-		tx.Rollback()
-		return errors.New("No private key exists for this login: " + existingLogin)
-	}
-	privateKeyHashBucket := tx.Bucket([]byte(BucketPrivateKeyHash))
-	privateKeyHash := privateKeyHashBucket.Get([]byte(PrivateKeyHashKeyName))
-	if privateKeyHash == nil {
-		tx.Rollback()
-		return errors.New("Private key hash is not set")
+		return err
 	}
 
-	decryptedPrivateKey, err := cryptography.DecryptDataSymmetric([]byte(passwordHashExistingLogin), privateKeyEncrypted)
+	decryptedPrivateKey, err := getAndDecryptPrivateKey(userid, []byte(passwordHashExistingLogin), tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	privateKeyHash, err := getPrivateKeyHash(userid, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	fmt.Printf("private key: %x\n", decryptedPrivateKey)
 
 	if err != nil {
@@ -215,11 +204,13 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 		tx.Rollback()
 		return err
 	}
+	loginInformationBucket := tx.Bucket([]byte(BucketLoginInformation))
 	err = loginInformationBucket.Put(uuidStringBytes, loginBytes)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+	loginPrivateKeyBucket := tx.Bucket([]byte(BucketLoginPrivateKeyEncrypted))
 	err = loginPrivateKeyBucket.Put(uuidStringBytes, encryptedPrivateKey)
 	if err != nil {
 		tx.Rollback()
@@ -228,28 +219,137 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 	tx.Commit()
 	return nil
 }
+func getLoginId(loginString string, tx *bolt.Tx) (uid []byte, err error) {
+	loginInformationBucket := tx.Bucket([]byte(BucketLoginInformation))
+	c := loginInformationBucket.Cursor()
 
-func ListAllUsers() (output string, err error) {
+	var userid []byte
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var login Login
+		err = json.Unmarshal(v, &login)
+		if err != nil {
+			return nil, err
+		}
+		if login.Login == loginString {
+			userid = k
+		}
+	}
+	if userid == nil {
+		return nil, errors.New("No existing login found: " + loginString)
+	}
+	return userid, nil
+}
+func getAndDecryptPrivateKey(loginId, passwordHash []byte, tx *bolt.Tx) (privateKey []byte, err error) {
+	loginPrivateKeyBucket := tx.Bucket([]byte(BucketLoginPrivateKeyEncrypted))
+	privateKeyEncrypted := loginPrivateKeyBucket.Get(loginId)
+	if privateKeyEncrypted == nil {
+		return nil, errors.New("No private key exists for this login: " + string(loginId))
+	}
+	decryptedPrivateKey, err := cryptography.DecryptDataSymmetric([]byte(passwordHash), privateKeyEncrypted)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("private key: %x\n", decryptedPrivateKey)
+	return decryptedPrivateKey, nil
+}
+
+func getPrivateKeyHash(id []byte, tx *bolt.Tx) (hash []byte, err error) {
+	privateKeyHashBucket := tx.Bucket([]byte(BucketPrivateKeyHash))
+	privateKeyHash := privateKeyHashBucket.Get([]byte(PrivateKeyHashKeyName))
+	if privateKeyHash == nil {
+		return nil, errors.New("Private key hash is not set")
+	}
+	return privateKeyHash, nil
+}
+
+func getPublicKey(tx *bolt.Tx) (publicKey []byte, err error) {
+	publicKeyBucket := tx.Bucket([]byte(BucketPublicKey))
+	publicKey = publicKeyBucket.Get([]byte(PublicKeyKeyName))
+	if publicKey == nil {
+		return nil, errors.New("Public key is empty")
+	}
+	return publicKey, nil
+}
+
+func ListAllUsers() (logins []Login, err error) {
 	tx, err := Database.Begin(false)
 	defer tx.Rollback()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	loginInfoBucket := tx.Bucket([]byte(BucketLoginInformation))
 	if loginInfoBucket == nil {
-		return "", err
+		return nil, err
 	}
 	c := loginInfoBucket.Cursor()
 	for k, v := c.First(); k != nil; k, v = c.Next() {
 		var login Login
 		err = json.Unmarshal(v, &login)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		output += "login: " + login.Login + "   " + "creation time: " + login.CreateTime.String() + "\n"
+		logins = append(logins, login)
 
 	}
-	return output, nil
+	return logins, nil
+}
+func EncryptData(label, plainData string) error {
+	tx, err := Database.Begin(true)
+	defer tx.Rollback()
+	if err != nil {
+		return err
+	}
+	data := Data{Label: label, CreateTime: time.Now()}
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	uid, err := uuid.New().MarshalText()
+	if err != nil {
+		return err
+	}
+	randomPasswordByte := []byte(cryptography.GenerateRandomString())
+
+	dataInfoBucket := tx.Bucket([]byte(BucketDataInformation))
+	if dataInfoBucket == nil {
+		return errors.New("Bucket: " + BucketDataInformation + " doesn't exist")
+	}
+	err = dataInfoBucket.Put(uid, dataBytes)
+	if err != nil {
+		return err
+	}
+
+	encryptedData, err := cryptography.EncryptDataSymmetric(randomPasswordByte, []byte(plainData))
+	if err != nil {
+		return err
+	}
+	publicKey, err := getPublicKey(tx)
+	if err != nil {
+		return err
+	}
+	encryptedRandomPassword, err := cryptography.EncryptDataAsymmetric(publicKey, randomPasswordByte)
+	if err != nil {
+		return err
+	}
+
+	encrypteDataBucket := tx.Bucket([]byte(BucketDataEncrypted))
+	if encrypteDataBucket == nil {
+		return errors.New("Bucket: " + BucketDataEncrypted + " doesn't exist")
+	}
+	err = encrypteDataBucket.Put(uid, encryptedData)
+	if err != nil {
+		return err
+	}
+	encryptedDataPasswordBucket := tx.Bucket([]byte(BucketDataPasswordEncrypted))
+	if encryptedDataPasswordBucket == nil {
+		return errors.New("Bucket: " + BucketDataPasswordEncrypted + " doesn't exist")
+	}
+	err = encryptedDataPasswordBucket.Put(uid, encryptedRandomPassword)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
 }
 func DecryptData(login, password, name, data string) error {
 	return errors.New("Not implemented")
