@@ -20,7 +20,7 @@ const PrivateKeyHashKeyName = "PrivateKeyHash"
 
 func init() {
 	var err error
-	Database, err = bolt.Open("locker.db", 0600, nil)
+	Database, err = bolt.Open("db_locker.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

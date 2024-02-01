@@ -20,8 +20,8 @@ var loginCmd = &cobra.Command{
 	Short: "Adds new login, username can be empty",
 	Long: `Adds new login, that login will encrypt private key
 	Example:
-		locker add login user --newlogin newuser --newpassword password12345
-		locker add login user --login newuser --password password12345 --newlogin newuser2 --newpassword password98765
+		locker add login --newlogin newuser --newpassword password12345
+		locker add login --login newuser --password password12345 --newlogin newuser2 --newpassword password98765
 		`,
 
 	Run: func(cmd *cobra.Command, args []string) {

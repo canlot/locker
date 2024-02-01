@@ -6,24 +6,32 @@ package encrypt
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"main/internals"
 )
+
+var data string
+var label string
 
 // dataCmd represents the data command
 var dataCmd = &cobra.Command{
 	Use:   "data",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Encrypt data",
+	Long: `Encrypts data
+Usage:
+	locker encrypt data --label datalabel --data secretdata`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("data called")
+		err := internals.EncryptData(label, data)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	},
 }
 
 func init() {
+	dataCmd.Flags().StringVar(&data, "data", "", "Plain data")
+	dataCmd.MarkFlagRequired("data")
+	dataCmd.Flags().StringVar(&label, "label", "", "Label for data")
+	dataCmd.MarkFlagRequired("label")
 	EncryptCmd.AddCommand(dataCmd)
 
 	// Here you will define your flags and configuration settings.

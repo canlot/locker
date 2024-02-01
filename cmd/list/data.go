@@ -5,7 +5,10 @@ package list
 
 import (
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"main/internals"
 )
 
 // dataCmd represents the data command
@@ -19,7 +22,19 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("data called")
+		keys, dataInfo, err := internals.ListAllData()
+		if err != nil {
+			fmt.Println("Error occured")
+			return
+		} else {
+			tbl := table.New("Key", "Label", "Creation time")
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			tbl.WithHeaderFormatter(headerFmt)
+			for i := 0; i < len(keys); i++ {
+				tbl.AddRow(keys[i], dataInfo[i].Label, dataInfo[i].CreateTime)
+			}
+			tbl.Print()
+		}
 	},
 }
 
