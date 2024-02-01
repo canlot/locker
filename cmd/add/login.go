@@ -6,13 +6,17 @@ package add
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 	"main/internals"
+	"syscall"
 )
 
 var loginFlag string
-var passwordFlag string
+
+// var passwordFlag string
 var loginNewFlag string
-var passwordNewFlag string
+
+//var passwordNewFlag string
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
@@ -20,8 +24,8 @@ var loginCmd = &cobra.Command{
 	Short: "Adds new login, username can be empty",
 	Long: `Adds new login, that login will encrypt private key
 	Example:
-		locker add login --newlogin newuser --newpassword password12345
-		locker add login --login newuser --password password12345 --newlogin newuser2 --newpassword password98765
+		locker add login --newlogin newuser 
+		locker add login --login newuser --newlogin newuser2
 		`,
 
 	Run: func(cmd *cobra.Command, args []string) {
@@ -30,12 +34,18 @@ var loginCmd = &cobra.Command{
 			fmt.Println("Internal error occur: " + err.Error())
 			return
 		}
-		if (loginFlag == "" || passwordFlag == "") && !empty {
+		if (loginFlag == "") && !empty {
 			fmt.Println("Database is not empty, existing login and password must be provided")
 			return
 		}
 		if empty {
-			err = internals.CreateFirstLoginWithRSAKeys(loginNewFlag, passwordNewFlag)
+			fmt.Println("Password for login: ")
+			bytePw, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+			err = internals.CreateFirstLoginWithRSAKeys(loginNewFlag, string(bytePw))
 			if err != nil {
 				fmt.Println("Error occured at creation of first login: " + err.Error())
 				return
@@ -44,7 +54,17 @@ var loginCmd = &cobra.Command{
 				return
 			}
 		} else {
-			err = internals.CreateLoginWithExistingRSAKeys(loginFlag, passwordFlag, loginNewFlag, passwordNewFlag)
+			fmt.Println("Password for existing login: ")
+			existingPwd, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			fmt.Println("Password for new login: ")
+			newPwd, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			err = internals.CreateLoginWithExistingRSAKeys(loginFlag, string(existingPwd), loginNewFlag, string(newPwd))
 			if err != nil {
 				fmt.Println("Error occured at creation of login: " + err.Error())
 				return
@@ -57,11 +77,11 @@ var loginCmd = &cobra.Command{
 
 func init() {
 	loginCmd.Flags().StringVar(&loginFlag, "login", "", "Login name")
-	loginCmd.Flags().StringVar(&passwordFlag, "password", "", "Password for login")
+	//loginCmd.Flags().StringVar(&passwordFlag, "password", "", "Password for login")
 	loginCmd.Flags().StringVar(&loginNewFlag, "newlogin", "", "New login name")
-	loginCmd.Flags().StringVar(&passwordNewFlag, "newpassword", "", "Password for new login")
+	//loginCmd.Flags().StringVar(&passwordNewFlag, "newpassword", "", "Password for new login")
 	loginCmd.MarkFlagRequired("newlogin")
-	loginCmd.MarkFlagRequired("newpassword")
+	//loginCmd.MarkFlagRequired("newpassword")
 	AddCmd.AddCommand(loginCmd)
 
 	// Here you will define your flags and configuration settings.

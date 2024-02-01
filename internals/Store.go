@@ -135,7 +135,7 @@ func CreateFirstLoginWithRSAKeys(username, password string) error {
 func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLogin, newLoginPassword string) error {
 	//fmt.Println("CreateLoginWithExistingRSAKeys")
 	tx, err := Database.Begin(true)
-	tx.Rollback()
+	defer tx.Rollback()
 	if err != nil {
 		return err
 	}
