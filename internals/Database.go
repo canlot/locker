@@ -14,6 +14,12 @@ const BucketPublicKey = "BucketPublicKey"
 const BucketDataPasswordEncrypted = "BucketDataPasswordEncrypted"
 const BucketDataInformation = "BucketDataInformation"
 const BucketDataEncrypted = "BucketDataEncrypted"
+const BucketDataHash = "BucketDataHash"
+
+const BucketFilePasswordEncrypted = "BucketFilePasswordEncrypted"
+const BucketFileInformation = "BucketFileInformation"
+const BucketFileHash = "BucketFileHash"
+const BucketFileEncryptedHash = "BucketFileEncryptedHash"
 
 const PublicKeyKeyName = "PublicKey"
 const PrivateKeyHashKeyName = "PrivateKeyHash"

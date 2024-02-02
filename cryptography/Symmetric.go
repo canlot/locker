@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"errors"
 	"io"
+	"os"
 )
 
 func EncryptDataSymmetric(password, plainData []byte) (encryptedData []byte, err error) {
@@ -49,4 +50,35 @@ func DecryptDataSymmetric(password, encryptedData []byte) (plainData []byte, err
 		return nil, err
 	}
 	return out.Bytes(), nil
+}
+
+func EncryptFileSymmetric(password []byte, sourcePath, destinationPath string) error {
+	if len(password) != 32 {
+		return errors.New("Password not 32 bytes long")
+	}
+	plainFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer plainFile.Close()
+	encryptedFile, err := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+	defer encryptedFile.Close()
+	byteReader := io.Reader(plainFile)
+	byteWriter := io.Writer(encryptedFile)
+	blockCipher, err := aes.NewCipher(password)
+	if err != nil {
+		return err
+	}
+	var iv [aes.BlockSize]byte //no initialization vector needed because every data gets different key
+	stream := cipher.NewOFB(blockCipher, iv[:])
+
+	cryptWriter := &cipher.StreamWriter{S: stream, W: byteWriter}
+
+	if _, err = io.Copy(cryptWriter, byteReader); err != nil {
+		return err
+	}
+	return nil
 }
