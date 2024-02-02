@@ -8,7 +8,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"main/internals"
 	"syscall"
 )
@@ -25,7 +25,7 @@ Usage:
 	decrypt data --id c711427a-0000-0000-8b93-54efa5d50310 --login user`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Password: ")
-		password, err := terminal.ReadPassword(int(syscall.Stdin))
+		password, err := term.ReadPassword(int(syscall.Stdin))
 		dataInfo, plainData, err := internals.DecryptData(id, login, string(password))
 		if err != nil {
 			fmt.Println(err.Error())

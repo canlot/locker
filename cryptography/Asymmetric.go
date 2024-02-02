@@ -8,7 +8,7 @@ import (
 )
 
 func GenerateRSAKeys() (privateKeyBytes, publicKeyBytes []byte, err error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, nil, err
 	}

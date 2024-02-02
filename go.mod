@@ -10,6 +10,7 @@ require (
 	github.com/thanhpk/randstr v1.0.6
 	go.etcd.io/bbolt v1.3.8
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/term v0.16.0
 )
 
 require (
@@ -17,5 +18,5 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 )

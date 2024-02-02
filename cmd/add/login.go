@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"main/internals"
 	"syscall"
 )
@@ -40,7 +41,7 @@ var loginCmd = &cobra.Command{
 		}
 		if empty {
 			fmt.Println("Password for login: ")
-			bytePw, err := terminal.ReadPassword(int(syscall.Stdin))
+			bytePw, err := term.ReadPassword(int(syscall.Stdin))
 			if err != nil {
 				fmt.Println(err.Error())
 				return
@@ -55,7 +56,7 @@ var loginCmd = &cobra.Command{
 			}
 		} else {
 			fmt.Println("Password for existing login: ")
-			existingPwd, err := terminal.ReadPassword(int(syscall.Stdin))
+			existingPwd, err := term.ReadPassword(int(syscall.Stdin))
 			if err != nil {
 				fmt.Println(err.Error())
 			}

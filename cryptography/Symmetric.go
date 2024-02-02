@@ -17,7 +17,7 @@ func EncryptDataSymmetric(password, plainData []byte) (encryptedData []byte, err
 	if err != nil {
 		return nil, err
 	}
-	var iv [aes.BlockSize]byte
+	var iv [aes.BlockSize]byte //no initialization vector needed because every data gets different key
 	stream := cipher.NewOFB(blockCipher, iv[:])
 
 	var out bytes.Buffer
