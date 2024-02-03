@@ -430,3 +430,6 @@ func ListAllData() (keys []string, dataInfo []DataInformation, err error) {
 	}
 	return keys, dataInfo, nil
 }
+func EncryptFile(sourceFile, destinationPath string) error {
+
+}
