@@ -82,3 +82,34 @@ func EncryptFileSymmetric(password []byte, sourcePath, destinationPath string) e
 	}
 	return nil
 }
+
+func DecryptFileSymmetric(password []byte, sourcePath, destinationPath string) (err error) {
+	if len(password) != 32 {
+		errors.New("Password not 32 bytes long")
+	}
+	encryptedFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer encryptedFile.Close()
+	decryptedFile, _ := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+	defer encryptedFile.Close()
+	byteReader := io.Reader(encryptedFile)
+	byteWriter := io.Writer(decryptedFile)
+	blockCipher, err := aes.NewCipher(password)
+	if err != nil {
+		return err
+	}
+	var iv [aes.BlockSize]byte
+	stream := cipher.NewOFB(blockCipher, iv[:])
+
+	cryptReader := &cipher.StreamReader{S: stream, R: byteReader}
+	// Copy the input to the output stream, decrypting as we go.
+	if _, err := io.Copy(byteWriter, cryptReader); err != nil {
+		return err
+	}
+	return nil
+}
