@@ -52,7 +52,7 @@ func DecryptDataSymmetric(password, encryptedData []byte) (plainData []byte, err
 	return out.Bytes(), nil
 }
 
-func EncryptFileSymmetric(password []byte, sourcePath, destinationPath string) error {
+func EncryptFileSymmetric(password []byte, fileReader io.Reader, fileWriter io.Writer) error {
 	if len(password) != 32 {
 		return errors.New("Password not 32 bytes long")
 	}

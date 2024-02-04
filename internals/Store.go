@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
 	"main/cryptography"
+	"os"
 	"time"
 )
 
@@ -430,6 +431,20 @@ func ListAllData() (keys []string, dataInfo []DataInformation, err error) {
 	}
 	return keys, dataInfo, nil
 }
-func EncryptFile(sourceFile, destinationPath string) error {
+
+func EncryptFile(sourcePath, destinationPath string) error {
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+	destinationFile, err := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+	uid, err := uuid.New().MarshalText()
+	if err != nil {
+		return err
+	}
 
 }
