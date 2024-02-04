@@ -5,7 +5,10 @@ package list
 
 import (
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
+	"main/internals"
 )
 
 // filesCmd represents the files command
@@ -19,7 +22,19 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("files called")
+		keys, hashes, fileInfo, err := internals.ListAllFiles()
+		if err != nil {
+			fmt.Println("Error occured")
+			return
+		} else {
+			tbl := table.New("Key", "Hash", "Path", "Creation time")
+			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+			tbl.WithHeaderFormatter(headerFmt)
+			for i := 0; i < len(keys); i++ {
+				tbl.AddRow(keys[i], hashes[i], fileInfo[i].Path, fileInfo[i].CreateTime)
+			}
+			tbl.Print()
+		}
 	},
 }
 

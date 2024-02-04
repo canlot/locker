@@ -2,6 +2,7 @@ package internals
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,8 +22,9 @@ type DataInformation struct {
 	CreateTime time.Time
 }
 
-type FileInformation string {
-
+type FileInformation struct {
+	Path       string
+	CreateTime time.Time
 }
 
 var Store DBStore
@@ -212,7 +214,7 @@ func CreateLoginWithExistingRSAKeys(existingLogin, existingLoginPassword, newLog
 	}
 	return nil
 }
-func getLoginId(loginString string, tx *bolt.Tx) (uid []byte, err error) {
+func getLoginId(loginString string, tx *bolt.Tx) (uid []byte, err error) { // return error if no login found
 	loginInformationBucket := tx.Bucket([]byte(BucketLoginInformation))
 	c := loginInformationBucket.Cursor()
 
@@ -436,32 +438,103 @@ func ListAllData() (keys []string, dataInfo []DataInformation, err error) {
 	}
 	return keys, dataInfo, nil
 }
-
+func ListAllFiles() (ids, hashes []string, fileInfo []FileInformation, err error) {
+	tx, err := Database.Begin(false)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer tx.Rollback()
+	fileInfoBucket := tx.Bucket([]byte(BucketFileInformation))
+	if fileInfoBucket == nil {
+		return nil, nil, nil, errors.New("No bucket " + BucketFileInformation + "found")
+	}
+	c := fileInfoBucket.Cursor()
+	for k, v := c.First(); k != nil; k, v = c.Next() {
+		var file FileInformation
+		err = json.Unmarshal(v, &file)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		fileInfo = append(fileInfo, file)
+		ids = append(ids, string(k))
+		hash, err := getValue(tx, k, BucketFileHash)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		hashes = append(hashes, hex.EncodeToString(hash))
+	}
+	return ids, hashes, fileInfo, nil
+}
 func ThrowErrorIfUidAlreadyExist(tx *bolt.Tx, uid []byte, buckets ...string) error {
 	for i := range buckets {
 		bucket := tx.Bucket([]byte(buckets[i]))
 		if bucket == nil {
-			return errors.New("Bucket: " + buckets[i] + " is not empty")
+			return errors.New("Bucket: " + buckets[i] + " is empty")
 		}
 		value := bucket.Get(uid)
-		if value == nil {
+		if value != nil {
 			return errors.New("A glitch in the universe has been happen, uuid already exist, please retry")
 		}
 	}
 	return nil
 
 }
-
-func EncryptFile(sourcePath, destinationPath string) error {
-	sourceFile, err := os.Open(sourcePath)
+func getValue(tx *bolt.Tx, uid []byte, bucketName string) (value []byte, err error) {
+	bucket := tx.Bucket([]byte(bucketName))
+	if bucket == nil {
+		return nil, errors.New("Bucket: " + bucketName + " doesn't exist")
+	}
+	value = bucket.Get(uid)
+	if value == nil {
+		return nil, errors.New("No value for id: " + string(uid) + " in bucket: " + bucketName + " found")
+	}
+	return value, nil
+}
+func saveValue(tx *bolt.Tx, uid, value []byte, bucketName string) error {
+	bucket := tx.Bucket([]byte(bucketName))
+	if bucket == nil {
+		return errors.New("Bucket: " + bucketName + " doesn't exist")
+	}
+	err := bucket.Put(uid, value)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+func deleteValue(tx *bolt.Tx, uid []byte, bucketName string) error {
+	bucket := tx.Bucket([]byte(bucketName))
+	if bucket == nil {
+		return errors.New("Bucket: " + bucketName + " doesn't exist")
+	}
+	err := bucket.Delete(uid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func deleteValues(tx *bolt.Tx, uid []byte, bucketNames ...string) error {
+	for i := range bucketNames {
+		err := deleteValue(tx, uid, bucketNames[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func EncryptFile(sourcePath, destinationPath string) error {
+	fmt.Println(sourcePath)
+	sourceFile, err := os.Open(sourcePath)
+
+	if err != nil {
+		return err
+	}
+
 	defer sourceFile.Close()
 	destinationFile, err := os.Create(destinationPath)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Hallodslkf")
 	defer destinationFile.Close()
 	uid, err := uuid.New().MarshalText()
 	if err != nil {
@@ -473,5 +546,133 @@ func EncryptFile(sourcePath, destinationPath string) error {
 		return errors.New("uid has not the expected lenght")
 	}
 	fileWriter.Write(uid)
+	tx, err := Database.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	err = ThrowErrorIfUidAlreadyExist(tx, uid, BucketFileHash, BucketFileInformation, BucketFilePasswordEncrypted)
+	if err != nil {
+		return err
+	}
+	publicKey, err := getPublicKey(tx)
+	if err != nil {
+		return err
+	}
+	randomPassword := cryptography.GenerateRandomBytes()
 
+	err = cryptography.EncryptFileSymmetric(randomPassword, fileReader, fileWriter)
+	if err != nil {
+		return err
+	}
+	randomPasswordEncrypted, err := cryptography.EncryptDataAsymmetric(publicKey, randomPassword)
+	if err != nil {
+		return err
+	}
+	err = saveValue(tx, uid, randomPasswordEncrypted, BucketFilePasswordEncrypted)
+	if err != nil {
+		return err
+	}
+	dataInfo := FileInformation{Path: sourcePath, CreateTime: time.Now()}
+	dataInfoBytes, err := json.Marshal(&dataInfo)
+	if err != nil {
+		return err
+	}
+	err = saveValue(tx, uid, dataInfoBytes, BucketFileInformation)
+	if err != nil {
+		return err
+	}
+	fileHash, err := cryptography.GetSha256HashFile(sourcePath)
+	if err != nil {
+		return err
+	}
+	err = saveValue(tx, uid, fileHash, BucketFileHash)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+func DecryptFile(sourcePath, destinationPath, login, password string) error {
+	encryptedFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer encryptedFile.Close()
+	decryptedFile, _ := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+	defer encryptedFile.Close()
+	fileReader := io.Reader(encryptedFile)
+	fileWriter := io.Writer(decryptedFile)
+	uid := make([]byte, 36)
+	byteCount, err := fileReader.Read(uid)
+	if err != nil {
+		return err
+	}
+	if byteCount != 36 {
+		return errors.New("Not an exact amount of byted read")
+	}
+	_, err = uuid.ParseBytes(uid)
+	if err != nil {
+		return err
+	}
+	tx, err := Database.Begin(true)
+	if err != nil {
+		return err
+	}
+	loginId, err := getLoginId(login, tx)
+	if err != nil {
+		return err
+	}
+	passwordHash, err := cryptography.GenerateUserHash([]byte(password))
+	if err != nil {
+		return err
+	}
+	privateKey, err := getAndDecryptPrivateKey(loginId, passwordHash, tx)
+	if err != nil {
+		return err
+	}
+	privateKeyHash, err := getPrivateKeyHash(tx)
+	if err != nil {
+		return err
+	}
+	privateKeyHashGenerated, err := cryptography.GetSha256Hash(privateKey)
+	if !bytes.Equal(privateKeyHash, privateKeyHashGenerated) {
+		return errors.New("Private key hash is different, password maybe incorrect")
+	}
+	filePasswordEncrypted, err := getValue(tx, uid, BucketFilePasswordEncrypted)
+	if err != nil {
+		return err
+	}
+	filePasswordDecrypted, err := cryptography.DecryptDataAsymmetric(privateKey, filePasswordEncrypted)
+	if err != nil {
+		return err
+	}
+	err = cryptography.DecryptFileSymmetric(filePasswordDecrypted, fileReader, fileWriter)
+	if err != nil {
+		return err
+	}
+	err = decryptedFile.Close()
+	if err != nil {
+		return err
+	}
+	fileHash, err := getValue(tx, uid, BucketFileHash)
+	if err != nil {
+		return err
+	}
+	generatedFileHash, err := cryptography.GetSha256HashFile(destinationPath)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(fileHash, generatedFileHash) {
+		return errors.New("File hash is not equal, file has been changed")
+	}
+	err = deleteValues(tx, uid, BucketFileHash, BucketFileInformation, BucketFilePasswordEncrypted)
+	if err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
 }

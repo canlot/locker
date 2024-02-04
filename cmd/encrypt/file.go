@@ -6,24 +6,32 @@ package encrypt
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"main/internals"
 )
+
+var source string
+var destination string
 
 // fileCmd represents the file command
 var fileCmd = &cobra.Command{
 	Use:   "file",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Encrypt file",
+	Long: `Encrypts file
+Usage:
+	locker encrypt file --source /var/file --destination /var/file.locked`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("file called")
+		err := internals.EncryptFile(source, destination)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	},
 }
 
 func init() {
+	fileCmd.Flags().StringVar(&source, "source", "", "source file")
+	fileCmd.MarkFlagRequired("source")
+	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file")
+	fileCmd.MarkFlagRequired("destination")
 	EncryptCmd.AddCommand(fileCmd)
 
 	// Here you will define your flags and configuration settings.

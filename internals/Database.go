@@ -19,7 +19,6 @@ const BucketDataHash = "BucketDataHash"
 const BucketFilePasswordEncrypted = "BucketFilePasswordEncrypted"
 const BucketFileInformation = "BucketFileInformation"
 const BucketFileHash = "BucketFileHash"
-const BucketFileEncryptedHash = "BucketFileEncryptedHash"
 
 const PublicKeyKeyName = "PublicKey"
 const PrivateKeyHashKeyName = "PrivateKeyHash"
@@ -63,6 +62,22 @@ func createBuckets(tx *bolt.Tx) error {
 		return err
 	}
 	_, err = tx.CreateBucketIfNotExists([]byte(BucketDataEncrypted))
+	if err != nil {
+		return err
+	}
+	_, err = tx.CreateBucketIfNotExists([]byte(BucketDataHash))
+	if err != nil {
+		return err
+	}
+	_, err = tx.CreateBucketIfNotExists([]byte(BucketFilePasswordEncrypted))
+	if err != nil {
+		return err
+	}
+	_, err = tx.CreateBucketIfNotExists([]byte(BucketFileInformation))
+	if err != nil {
+		return err
+	}
+	_, err = tx.CreateBucketIfNotExists([]byte(BucketFileHash))
 	if err != nil {
 		return err
 	}
