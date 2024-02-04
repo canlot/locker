@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
+	"io"
 	"main/cryptography"
 	"os"
 	"time"
@@ -18,6 +19,10 @@ type DBStore struct {
 type DataInformation struct {
 	Label      string
 	CreateTime time.Time
+}
+
+type FileInformation string {
+
 }
 
 var Store DBStore
@@ -432,6 +437,21 @@ func ListAllData() (keys []string, dataInfo []DataInformation, err error) {
 	return keys, dataInfo, nil
 }
 
+func ThrowErrorIfUidAlreadyExist(tx *bolt.Tx, uid []byte, buckets ...string) error {
+	for i := range buckets {
+		bucket := tx.Bucket([]byte(buckets[i]))
+		if bucket == nil {
+			return errors.New("Bucket: " + buckets[i] + " is not empty")
+		}
+		value := bucket.Get(uid)
+		if value == nil {
+			return errors.New("A glitch in the universe has been happen, uuid already exist, please retry")
+		}
+	}
+	return nil
+
+}
+
 func EncryptFile(sourcePath, destinationPath string) error {
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
@@ -442,9 +462,16 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return err
 	}
+	defer destinationFile.Close()
 	uid, err := uuid.New().MarshalText()
 	if err != nil {
 		return err
 	}
+	fileReader := io.Reader(sourceFile)
+	fileWriter := io.Writer(destinationFile)
+	if len(uid) != 36 {
+		return errors.New("uid has not the expected lenght")
+	}
+	fileWriter.Write(uid)
 
 }

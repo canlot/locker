@@ -23,7 +23,6 @@ func EncryptDataSymmetric(password, plainData []byte) (encryptedData []byte, err
 
 	var out bytes.Buffer
 	cryptWriter := &cipher.StreamWriter{S: stream, W: &out}
-
 	if _, err := io.Copy(cryptWriter, byteReader); err != nil {
 		return nil, err
 	}
