@@ -11,7 +11,7 @@ import (
 	"syscall"
 )
 
-var source string
+var encrypted string
 var destination string
 var loginFile string
 
@@ -28,7 +28,7 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Password: ")
 		password, err := term.ReadPassword(int(syscall.Stdin))
-		err = internals.DecryptFile(source, destination, loginFile, string(password))
+		err = internals.DecryptFile(encrypted, destination, loginFile, string(password))
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
@@ -38,10 +38,9 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	fileCmd.Flags().StringVar(&source, "source", "", "source file")
-	fileCmd.MarkFlagRequired("source")
+	fileCmd.Flags().StringVar(&encrypted, "encrypted", "", "source file")
+	fileCmd.MarkFlagRequired("encrypted")
 	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file")
-	fileCmd.MarkFlagRequired("destination")
 	fileCmd.Flags().StringVar(&loginFile, "login", "", "Login name")
 	fileCmd.MarkFlagRequired("login")
 	DecryptCmd.AddCommand(fileCmd)

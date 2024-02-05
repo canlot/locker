@@ -11,6 +11,8 @@ import (
 	"io"
 	"main/cryptography"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -521,8 +523,100 @@ func deleteValues(tx *bolt.Tx, uid []byte, bucketNames ...string) error {
 	}
 	return nil
 }
+func getPathsForEncryption(sourcePath, destinationPath string) (sPath, dPath string, err error) {
+	if sourcePath == "" {
+		return "", "", errors.New("Source path is empty")
+	}
+	sfile, err := os.Open(sourcePath)
+	if err != nil {
+		return "", "", err
+	}
+	defer sfile.Close()
+	sfileInfo, err := sfile.Stat()
+	if err != nil {
+		return "", "", err
+	}
+	if sfileInfo.IsDir() {
+		return "", "", errors.New("Path is not a file")
+	}
+
+	if destinationPath != "" {
+		dfile, err := os.Open(destinationPath)
+		if err != nil {
+		}
+		defer dfile.Close()
+		dfileInfo, err := dfile.Stat()
+		if err != nil {
+			return "", "", err
+		}
+		if !(dfileInfo.IsDir()) {
+			return sourcePath, destinationPath, nil
+		} else {
+			sourceFileName := filepath.Base(sourcePath)
+			dPath = filepath.Join(destinationPath, (sourceFileName + ".lock"))
+			return sourcePath, dPath, nil
+		}
+	} else {
+		dPath = sourcePath + ".lock"
+		return sourcePath, dPath, nil
+	}
+}
+func getPathsForDecryption(sourcePath, destinationPath string) (sPath, dPath string, err error) {
+	if sourcePath == "" {
+		return "", "", errors.New("Source path is empty")
+	}
+	sfile, err := os.Open(sourcePath)
+	if err != nil {
+		return "", "", err
+	}
+	defer sfile.Close()
+	sfileInfo, err := sfile.Stat()
+	if err != nil {
+		return "", "", err
+	}
+	if sfileInfo.IsDir() {
+		return "", "", errors.New("Path is not a file")
+	}
+
+	fileName := filepath.Base(sourcePath)
+
+	var destinationDirectory string
+	if destinationPath != "" {
+		dfile, err := os.Open(destinationPath)
+		if err != nil {
+		}
+		defer dfile.Close()
+		dfileInfo, err := dfile.Stat()
+		if err != nil {
+			return "", "", err
+		}
+		if !(dfileInfo.IsDir()) {
+			destinationDirectory = filepath.Dir(destinationPath)
+			fileName = filepath.Base(destinationPath)
+		}
+	} else {
+		destinationDirectory = filepath.Dir(sourcePath)
+	}
+	destinationFileName, found := strings.CutSuffix(fileName, ".lock")
+	if found != true {
+		return "", "", errors.New("Source file has no ending .lock")
+	}
+	//fmt.Println(destinationDirectory)
+	//fmt.Println(destinationFileName)
+	dPath = filepath.Join(destinationDirectory, destinationFileName)
+	newFile, err := os.Open(dPath)
+	defer newFile.Close()
+	if err == nil { // file already exist
+		dPath = filepath.Join(destinationDirectory, ("unlocked_" + destinationFileName))
+		return sourcePath, dPath, nil
+	}
+	return sourcePath, dPath, nil
+}
 func EncryptFile(sourcePath, destinationPath string) error {
-	fmt.Println(sourcePath)
+	sourcePath, destinationPath, err := getPathsForEncryption(sourcePath, destinationPath)
+	if err != nil {
+		return err
+	}
 	sourceFile, err := os.Open(sourcePath)
 
 	if err != nil {
@@ -534,7 +628,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Hallodslkf")
+
 	defer destinationFile.Close()
 	uid, err := uuid.New().MarshalText()
 	if err != nil {
@@ -560,7 +654,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 		return err
 	}
 	randomPassword := cryptography.GenerateRandomBytes()
-
+	fmt.Println("Start encryption: " + time.Now().String())
 	err = cryptography.EncryptFileSymmetric(randomPassword, fileReader, fileWriter)
 	if err != nil {
 		return err
@@ -582,7 +676,9 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Done encryption: " + time.Now().String())
 	fileHash, err := cryptography.GetSha256HashFile(sourcePath)
+	fmt.Println("Done Hashing " + time.Now().String())
 	if err != nil {
 		return err
 	}
@@ -590,10 +686,22 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return err
 	}
+	sourceFile.Close()
+	destinationFile.Close()
+	err = os.Remove(sourcePath)
+	if err != nil {
+		return err
+	}
 	tx.Commit()
 	return nil
 }
 func DecryptFile(sourcePath, destinationPath, login, password string) error {
+	sourcePath, destinationPath, err := getPathsForDecryption(sourcePath, destinationPath)
+	if err != nil {
+		return err
+	}
+	fmt.Println(sourcePath)
+	fmt.Println(destinationPath)
 	encryptedFile, err := os.Open(sourcePath)
 	if err != nil {
 		return err
@@ -670,6 +778,12 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 		return errors.New("File hash is not equal, file has been changed")
 	}
 	err = deleteValues(tx, uid, BucketFileHash, BucketFileInformation, BucketFilePasswordEncrypted)
+	if err != nil {
+		return err
+	}
+	encryptedFile.Close()
+	decryptedFile.Close()
+	err = os.Remove(sourcePath)
 	if err != nil {
 		return err
 	}
