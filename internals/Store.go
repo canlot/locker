@@ -30,6 +30,7 @@ type FileInformation struct {
 }
 
 var Store DBStore
+var FileEncryptionEnding = ".lock"
 
 func IsDatabaseEmpty() (bool, error) {
 	fmt.Println("IsDatabaseEmpty")
@@ -601,8 +602,7 @@ func getPathsForDecryption(sourcePath, destinationPath string) (sPath, dPath str
 	if found != true {
 		return "", "", errors.New("Source file has no ending .lock")
 	}
-	//fmt.Println(destinationDirectory)
-	//fmt.Println(destinationFileName)
+
 	dPath = filepath.Join(destinationDirectory, destinationFileName)
 	newFile, err := os.Open(dPath)
 	defer newFile.Close()
@@ -612,11 +612,42 @@ func getPathsForDecryption(sourcePath, destinationPath string) (sPath, dPath str
 	}
 	return sourcePath, dPath, nil
 }
+func fileAlreadyEncrypted(path string) (bool, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+	uid := make([]byte, 36)
+	_, err = file.Read(uid)
+	if err != nil {
+		return false, err
+	}
+	_, err = uuid.ParseBytes(uid)
+	if err == nil { //if file has uuid at start
+		_, exist := strings.CutSuffix(path, FileEncryptionEnding)
+		if exist { // and has .lock file ending
+			return true, nil // then file is encrypted
+		}
+	}
+	return false, nil // otherwise file is not encrypted
+
+}
+
 func EncryptFile(sourcePath, destinationPath string) error {
 	sourcePath, destinationPath, err := getPathsForEncryption(sourcePath, destinationPath)
 	if err != nil {
 		return err
 	}
+
+	alreadyEncrypted, err := fileAlreadyEncrypted(sourcePath)
+	if err != nil {
+		return err
+	}
+	if alreadyEncrypted {
+		return errors.New("File already encrypted")
+	}
+
 	sourceFile, err := os.Open(sourcePath)
 
 	if err != nil {
@@ -700,8 +731,6 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(sourcePath)
-	fmt.Println(destinationPath)
 	encryptedFile, err := os.Open(sourcePath)
 	if err != nil {
 		return err
