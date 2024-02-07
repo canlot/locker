@@ -18,13 +18,11 @@ var loginFile string
 // fileCmd represents the file command
 var fileCmd = &cobra.Command{
 	Use:   "file",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Decrypts file",
+	Long: `Decrypts previously encrypted file with provided data id and login
+Usage:
+	locker decrypt file --file /var/file.lock
+	locker decrypt file --file /var/file.lock --destination /opt`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Password: ")
 		password, err := term.ReadPassword(int(syscall.Stdin))
@@ -38,10 +36,10 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	fileCmd.Flags().StringVar(&file, "file", "", "encrypted file")
+	fileCmd.Flags().StringVarP(&file, "file", "f", "", "encrypted file")
 	fileCmd.MarkFlagRequired("file")
 	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file")
-	fileCmd.Flags().StringVar(&loginFile, "login", "", "Login name")
+	fileCmd.Flags().StringVarP(&loginFile, "login", "l", "", "Login name")
 	fileCmd.MarkFlagRequired("login")
 	DecryptCmd.AddCommand(fileCmd)
 

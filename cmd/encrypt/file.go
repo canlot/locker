@@ -18,7 +18,7 @@ var fileCmd = &cobra.Command{
 	Short: "Encrypt file",
 	Long: `Encrypts file
 Usage:
-	locker encrypt file --source /var/file --destination /var/file.locked`,
+	locker encrypt file --file /var/file --destination /var/file.locked`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := internals.EncryptFile(file, destination)
 		if err != nil {
@@ -28,9 +28,9 @@ Usage:
 }
 
 func init() {
-	fileCmd.Flags().StringVar(&file, "file", "", "source file")
+	fileCmd.Flags().StringVarP(&file, "file", "f", "", "source file")
 	fileCmd.MarkFlagRequired("file")
-	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file")
+	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file or path")
 	EncryptCmd.AddCommand(fileCmd)
 
 	// Here you will define your flags and configuration settings.

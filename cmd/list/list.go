@@ -10,7 +10,7 @@ import (
 // showCmd represents the list command
 var ListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "A brief description of your command",
+	Short: "Show an overview of available logins, data or files",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

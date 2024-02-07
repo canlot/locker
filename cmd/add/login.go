@@ -21,7 +21,7 @@ var loginNewFlag string
 
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
-	Use:   "login [username]",
+	Use:   "login",
 	Short: "Adds new login, username can be empty",
 	Long: `Adds new login, that login will encrypt private key
 	Example:
@@ -77,12 +77,10 @@ var loginCmd = &cobra.Command{
 }
 
 func init() {
-	loginCmd.Flags().StringVar(&loginFlag, "login", "", "Login name")
-	//loginCmd.Flags().StringVar(&passwordFlag, "password", "", "Password for login")
-	loginCmd.Flags().StringVar(&loginNewFlag, "newlogin", "", "New login name")
-	//loginCmd.Flags().StringVar(&passwordNewFlag, "newpassword", "", "Password for new login")
+	loginCmd.Flags().StringVarP(&loginFlag, "login", "l", "", "Existing login name")
+	loginCmd.Flags().StringVarP(&loginNewFlag, "newlogin", "n", "", "New login name")
 	loginCmd.MarkFlagRequired("newlogin")
-	//loginCmd.MarkFlagRequired("newpassword")
+
 	AddCmd.AddCommand(loginCmd)
 
 	// Here you will define your flags and configuration settings.

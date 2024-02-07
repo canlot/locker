@@ -18,8 +18,8 @@ var id string
 
 // dataCmd represents the data command
 var dataCmd = &cobra.Command{
-	Use:   "data",
-	Short: "decrypts data",
+	Use:   "data]",
+	Short: "Decrypts data",
 	Long: `Decrypts previously encrypted data with provided data id and login
 Usage:
 	decrypt data --id c711427a-0000-0000-8b93-54efa5d50310 --login user`,
@@ -41,7 +41,7 @@ Usage:
 }
 
 func init() {
-	dataCmd.Flags().StringVar(&login, "login", "", "Login name")
+	dataCmd.Flags().StringVarP(&login, "login", "l", "", "Login name")
 	dataCmd.Flags().StringVar(&id, "id", "", "Data id")
 	dataCmd.MarkFlagRequired("login")
 	dataCmd.MarkFlagRequired("id")

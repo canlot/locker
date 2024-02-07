@@ -17,7 +17,7 @@ var loginsCmd = &cobra.Command{
 	Short: "Lists all logins",
 	Long:  `Lists all logins with the login name and create date and time.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logins, err := internals.ListAllUsers()
+		logins, err := internals.ListAllLogins()
 		if err != nil {
 			fmt.Println("Error occured")
 			return

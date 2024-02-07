@@ -15,8 +15,8 @@ var label string
 // dataCmd represents the data command
 var dataCmd = &cobra.Command{
 	Use:   "data",
-	Short: "Encrypt data",
-	Long: `Encrypts data
+	Short: "Encrypts data",
+	Long: `Encrypts data, provided label will be saved in the database to identify encrypted data
 Usage:
 	locker encrypt data --label datalabel --data secretdata`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -28,9 +28,9 @@ Usage:
 }
 
 func init() {
-	dataCmd.Flags().StringVar(&data, "data", "", "Plain data")
+	dataCmd.Flags().StringVarP(&data, "data", "d", "", "Plain data that will be encrypted")
 	dataCmd.MarkFlagRequired("data")
-	dataCmd.Flags().StringVar(&label, "label", "", "Label for data")
+	dataCmd.Flags().StringVarP(&label, "label", "l", "", "Label for data")
 	dataCmd.MarkFlagRequired("label")
 	EncryptCmd.AddCommand(dataCmd)
 

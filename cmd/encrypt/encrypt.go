@@ -4,23 +4,15 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package encrypt
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 )
 
 // encryptCmd represents the encrypt command
 var EncryptCmd = &cobra.Command{
 	Use:   "encrypt",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("encrypt called")
-	},
+	Short: "Encrypts file or data",
+	Long: `Encrypts file or data with public key without a use of a password, 
+it creates a random password at the execute time and encrypts it with public key.`,
 }
 
 func init() {
