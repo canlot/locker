@@ -22,7 +22,18 @@ var decryptedFilePathRelative string
 func init() {
 
 }
+func copyFile(src, dst string) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
 
+	err = os.WriteFile(dst, input, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func createFoldersAndFilesForTesting() {
 	path, err := os.Getwd()
 	if err != nil {
@@ -34,6 +45,12 @@ func createFoldersAndFilesForTesting() {
 		panic(err)
 	}
 	testFolder = filepath.Join(path, "test")
+
+	err = copyFile(filepath.Join("artifacts", "testfile.txt"), testFolder)
+	if err != nil {
+		panic(err)
+	}
+
 	err = os.Chdir(testFolder)
 	if err != nil {
 		panic(err)
@@ -111,4 +128,8 @@ func Test_getPathsForEncryption(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, sPath, decryptedFilePathRelative)
 	assert.Equal(t, dPath, filepath.Join(folderTestPathRelative, "decrypted.txt.lock"))
+}
+
+func Test_EncryptFileSymmetricWithHash(t *testing.T) {
+
 }
