@@ -26,6 +26,10 @@ const PublicKeyKeyName = "PublicKey"
 const PrivateKeyHashKeyName = "PrivateKeyHash"
 
 func init() {
+
+}
+
+func CreateDatabaseIfNotExists() {
 	var err error
 	Database, err = bolt.Open("db_locker.db", 0600, nil)
 	if err != nil {

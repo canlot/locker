@@ -38,7 +38,7 @@ func ListAllLogins() (logins []Login, err error) {
 	return logins, nil
 }
 
-func CreateFirstLoginWithRSAKeys(username, password string) error {
+func CreateFirstLoginWithRSAKeys(username, password string, privateKey, publicKey []byte) error {
 	createTime := time.Now()
 	passwordHash, err := cryptography.GenerateUserHash([]byte(password))
 	if err != nil {
@@ -54,10 +54,7 @@ func CreateFirstLoginWithRSAKeys(username, password string) error {
 	if err != nil {
 		return err
 	}
-	privateKey, publicKey, err := cryptography.GenerateRSAKeys()
-	if err != nil {
-		return err
-	}
+
 	privateKeyHash, err := cryptography.GetSha256Hash(privateKey)
 	if err != nil {
 		return err

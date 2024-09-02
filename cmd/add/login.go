@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/term"
+	"main/cryptography"
 	"main/internals"
 	"syscall"
 )
@@ -46,7 +47,12 @@ var loginCmd = &cobra.Command{
 				fmt.Println(err.Error())
 				return
 			}
-			err = internals.CreateFirstLoginWithRSAKeys(loginNewFlag, string(bytePw))
+			privateKey, publicKey, err := cryptography.GenerateRSAKeys()
+			if err != nil {
+				fmt.Println("Error occured at generating RSA keys: " + err.Error())
+				return
+			}
+			err = internals.CreateFirstLoginWithRSAKeys(loginNewFlag, string(bytePw), privateKey, publicKey)
 			if err != nil {
 				fmt.Println("Error occured at creation of first login: " + err.Error())
 				return

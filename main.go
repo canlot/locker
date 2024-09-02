@@ -5,9 +5,11 @@ package main
 
 import (
 	"main/cmd"
+	"main/internals"
 )
 
 func main() {
+	internals.CreateDatabaseIfNotExists()
+	defer internals.Database.Close()
 	cmd.Execute()
-	//defer internals.Database.Close()
 }
