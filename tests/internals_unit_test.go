@@ -1,8 +1,12 @@
 package tests
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/scrypt"
+	"io"
+	"main/cryptography"
 	"main/internals"
 	"os"
 	"path/filepath"
@@ -22,6 +26,19 @@ var decryptedFilePathRelative string
 func init() {
 
 }
+func getSha256HashFile(filePath string) (hash []byte, err error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, file); err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
+}
+
 func copyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {
@@ -34,26 +51,26 @@ func copyFile(src, dst string) error {
 	}
 	return nil
 }
-func createFoldersAndFilesForTesting() {
+func createFoldersAndFilesForTesting() error {
 	path, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	baseFolder = path
 	err = os.Mkdir(filepath.Join(path, "test"), 0777)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	testFolder = filepath.Join(path, "test")
 
-	err = copyFile(filepath.Join("artifacts", "testfile.txt"), testFolder)
+	err = copyFile(filepath.Join("artifacts", "testfile.txt"), filepath.Join(testFolder, "testfile.txt"))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = os.Chdir(testFolder)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	currentFolder = testFolder
 
@@ -63,27 +80,32 @@ func createFoldersAndFilesForTesting() {
 	folderTestPathRelative = folderName
 	err = os.Mkdir(folderTestPathAbsolute, 0777)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	decryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "decrypted.txt")
-	decryptedFilePathRelative = filepath.Join(folderName, "decrypted.txt")
-	encryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "encrypted.lock")
-	encryptedFilePathRelative = filepath.Join(folderName, "encrypted.lock")
+	decryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "test.txt")
+	decryptedFilePathRelative = filepath.Join(folderName, "test.txt")
+	encryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "test.txt.lock")
+	encryptedFilePathRelative = filepath.Join(folderName, "test.txt.lock")
 
 	file, err := os.Create(encryptedFilePathAbsolute)
 	defer file.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	file, err = os.Create(decryptedFilePathAbsolute)
 	defer file.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
+
 func TestMain(m *testing.M) {
-	createFoldersAndFilesForTesting()
+	err := createFoldersAndFilesForTesting()
+	if err != nil {
+		println(err)
+	}
 	defer deleteFoldersAndFilesAfterTesting()
 	m.Run()
 }
@@ -101,7 +123,7 @@ func pathAndPrint(path string) string {
 	fmt.Println(path)
 	return path
 }
-func Test_getPathsForEncryption(t *testing.T) {
+func Test_GetPathsForEncryption(t *testing.T) {
 
 	//invalid cases, no source file provided
 	_, _, err := internals.GetPathsForEncryption("", encryptedFilePathAbsolute)
@@ -127,9 +149,80 @@ func Test_getPathsForEncryption(t *testing.T) {
 	sPath, dPath, err = internals.GetPathsForEncryption(decryptedFilePathRelative, folderTestPathRelative)
 	assert.Nil(t, err)
 	assert.Equal(t, sPath, decryptedFilePathRelative)
-	assert.Equal(t, dPath, filepath.Join(folderTestPathRelative, "decrypted.txt.lock"))
+	assert.Equal(t, dPath, filepath.Join(folderTestPathRelative, "test.txt.lock"))
 }
 
-func Test_EncryptFileSymmetricWithHash(t *testing.T) {
+func Test_GetPathsForDecryption(t *testing.T) {
+	// invalid case, no source Path
+	_, _, err := internals.GetPathsForDecryption("", decryptedFilePathAbsolute)
+	assert.NotNil(t, err)
+
+	_, _, err = internals.GetPathsForDecryption(encryptedFilePathRelative, "")
+	assert.NotNil(t, err)
+
+}
+
+func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
+	bytePassword, err := scrypt.Key([]byte("test"), nil, 32768, 8, 2, 32)
+	if err != nil {
+		t.Fail()
+		return
+	}
+	unencryptedFilePath := filepath.Join(testFolder, "testfile.txt")
+	encryptedFilePath := filepath.Join(testFolder, "testfile.txt.lock")
+	decryptedFilePath := filepath.Join(testFolder, "testfile_decrypted.txt")
+
+	unencryptedFileHash, err := getSha256HashFile(unencryptedFilePath)
+	if err != nil {
+		t.Fail()
+		return
+	}
+
+	fileSrcUnencrypted, err := os.Open(unencryptedFilePath)
+	defer fileSrcUnencrypted.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fileDstEncrypted, err := os.Create(encryptedFilePath)
+	defer fileDstEncrypted.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	byteHash, err := cryptography.EncryptFileSymmetricWithHash(bytePassword, fileSrcUnencrypted, fileDstEncrypted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, unencryptedFileHash, byteHash)
+
+	fileSrcUnencrypted.Close()
+	fileDstEncrypted.Close()
+
+	fileSrcEncrypted, err := os.Open(encryptedFilePath)
+	defer fileSrcEncrypted.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileDstDecrypted, err := os.Create(decryptedFilePath)
+	defer fileDstDecrypted.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	byteHashDecrypted, err := cryptography.DecryptFileSymmetricWithHash(bytePassword, fileSrcEncrypted, fileDstDecrypted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileSrcEncrypted.Close()
+	fileDstDecrypted.Close()
+
+	assert.Equal(t, unencryptedFileHash, byteHashDecrypted)
+
+	decryptedFileHash, err := getSha256HashFile(decryptedFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, unencryptedFileHash, decryptedFileHash)
 
 }
