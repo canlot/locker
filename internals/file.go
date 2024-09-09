@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const MagicString = "locker"
+
 func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -57,63 +59,76 @@ func isDir(dirPath string) (bool, error) {
 }
 
 func GetPathsForEncryption(sourcePath, destinationPath string) (sPath, dPath string, err error) {
+
+	// source path checks
+
 	if sourcePath == "" {
 		return "", "", errors.New("Source path is empty")
 	}
 
-	pathExists, err := pathExists(sourcePath)
+	srcPathExists, err := pathExists(sourcePath)
 	if err != nil {
 		return "", "", err
 	}
-	if !pathExists {
+	if !srcPathExists {
 		return "", "", errors.New("Source path does not exist")
 	}
-	isFile, err := isFile(sourcePath)
+	srcIsFile, err := isFile(sourcePath)
 	if err != nil {
 		return "", "", err
 	}
-	if !isFile {
+	if !srcIsFile {
 		return "", "", errors.New("Source path is not a file")
 	}
 
-	/*
-		sfile, err := os.Open(sourcePath)
-		defer sfile.Close()
-		if err != nil {
-			return "", "", err
-		}
+	// destination path checks
 
-		sfileInfo, err := sfile.Stat()
-		if err != nil {
-			return "", "", err
-		}
-		if sfileInfo.IsDir() {
-			return "", "", errors.New("Path is not a file")
-		}
-	*/
 	if destinationPath == "" {
-		dPath = sourcePath + ".lock"
+		destinationPath = sourcePath + ".lock"
 		return sourcePath, dPath, nil
 	}
 
-	dfile, err := os.Open(destinationPath)
-	defer dfile.Close()
-	if err != nil {
-		return sourcePath, destinationPath, nil
-	}
-
-	dfileInfo, err := dfile.Stat()
+	dstPathExists, err := pathExists(destinationPath)
 	if err != nil {
 		return "", "", err
 	}
 
-	if !(dfileInfo.IsDir()) {
-		return "", "", errors.New("File already exists")
+	if dstPathExists {
+		dstIsDir, err := isDir(destinationPath)
+		if err != nil {
+			return "", "", err
+		}
+		filename := filepath.Base(sourcePath)
+
+		if dstIsDir {
+			destinationPath = filepath.Join(destinationPath, (filename + ".lock"))
+		}
+
 	}
 
-	sourceFileName := filepath.Base(sourcePath)
-	dPath = filepath.Join(destinationPath, (sourceFileName + ".lock"))
-	return sourcePath, dPath, nil
+	dstPathExists, err = pathExists(destinationPath)
+	if err != nil {
+		return "", "", err
+	}
+
+	if dstPathExists {
+		dstIsFile, err := isFile(destinationPath)
+		if err != nil {
+			return "", "", err
+		}
+		if dstIsFile {
+			return "", "", errors.New("Destination file already exists")
+		}
+		dstIsDir, err := isDir(destinationPath)
+		if err != nil {
+			return "", "", err
+		}
+		if dstIsDir {
+			return "", "", errors.New("Destination is a directory")
+		}
+	}
+
+	return sourcePath, destinationPath, nil
 
 }
 func GetPathsForDecryption(sourcePath, destinationPath string) (sPath, dPath string, err error) {
@@ -167,7 +182,7 @@ func GetPathsForDecryption(sourcePath, destinationPath string) (sPath, dPath str
 	}
 	return sourcePath, dPath, nil
 }
-func fileAlreadyEncrypted(path string) (bool, error) {
+func fileIsEncrypted(path string) (bool, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return false, err
@@ -221,7 +236,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 		return err
 	}
 
-	alreadyEncrypted, err := fileAlreadyEncrypted(sourcePath)
+	alreadyEncrypted, err := fileIsEncrypted(sourcePath)
 	if err != nil {
 		return err
 	}
@@ -230,12 +245,11 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	}
 
 	sourceFile, err := os.Open(sourcePath)
-
+	defer sourceFile.Close()
 	if err != nil {
 		return err
 	}
 
-	defer sourceFile.Close()
 	tx, err := Database.Begin(true)
 	if err != nil {
 		return err

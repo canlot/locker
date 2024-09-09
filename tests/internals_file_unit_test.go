@@ -51,7 +51,7 @@ func copyFile(src, dst string) error {
 	}
 	return nil
 }
-func createFoldersAndFilesForTesting() error {
+func setUpTest() error {
 	path, err := os.Getwd()
 	if err != nil {
 		return err
@@ -61,32 +61,31 @@ func createFoldersAndFilesForTesting() error {
 	if err != nil {
 		return err
 	}
-	testFolder = filepath.Join(path, "test")
+	currentFolder = filepath.Join(path, "test")
 
-	err = copyFile(filepath.Join("artifacts", "testfile.txt"), filepath.Join(testFolder, "testfile.txt"))
+	err = copyFile(filepath.Join("artifacts", "testfile.txt"), filepath.Join(currentFolder, "testfile.txt"))
 	if err != nil {
 		return err
 	}
 
-	err = os.Chdir(testFolder)
+	err = os.Chdir(currentFolder)
 	if err != nil {
 		return err
 	}
-	currentFolder = testFolder
 
-	folderName := "Test"
+	testFolder = "Test"
 
-	folderTestPathAbsolute = filepath.Join(currentFolder, folderName)
-	folderTestPathRelative = folderName
+	folderTestPathAbsolute = filepath.Join(currentFolder, testFolder)
+	folderTestPathRelative = testFolder
 	err = os.Mkdir(folderTestPathAbsolute, 0777)
 	if err != nil {
 		return err
 	}
 
 	decryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "test.txt")
-	decryptedFilePathRelative = filepath.Join(folderName, "test.txt")
+	decryptedFilePathRelative = filepath.Join(testFolder, "test.txt")
 	encryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "test.txt.lock")
-	encryptedFilePathRelative = filepath.Join(folderName, "test.txt.lock")
+	encryptedFilePathRelative = filepath.Join(testFolder, "test.txt.lock")
 
 	file, err := os.Create(encryptedFilePathAbsolute)
 	defer file.Close()
@@ -102,14 +101,9 @@ func createFoldersAndFilesForTesting() error {
 }
 
 func TestMain(m *testing.M) {
-	err := createFoldersAndFilesForTesting()
-	if err != nil {
-		println(err)
-	}
-	defer deleteFoldersAndFilesAfterTesting()
 	m.Run()
 }
-func deleteFoldersAndFilesAfterTesting() {
+func teardownTest() {
 	err := os.Chdir(baseFolder)
 	if err != nil {
 		panic(err)
@@ -124,7 +118,8 @@ func pathAndPrint(path string) string {
 	return path
 }
 func Test_GetPathsForEncryption(t *testing.T) {
-
+	setUpTest()
+	defer teardownTest()
 	//invalid cases, no source file provided
 	_, _, err := internals.GetPathsForEncryption("", encryptedFilePathAbsolute)
 	assert.NotNil(t, err)
@@ -140,19 +135,35 @@ func Test_GetPathsForEncryption(t *testing.T) {
 	assert.NotNil(t, err)
 
 	//valid case
-	dPath, sPath, err := internals.GetPathsForEncryption(decryptedFilePathAbsolute, filepath.Join(currentFolder, "test.lock"))
+	dPath, sPath, err := internals.GetPathsForEncryption(decryptedFilePathAbsolute, filepath.Join(testFolder, "test.lock"))
 	assert.Nil(t, err)
 	assert.Equal(t, dPath, decryptedFilePathAbsolute)
-	assert.Equal(t, sPath, filepath.Join(currentFolder, "test.lock"))
+	assert.Equal(t, sPath, filepath.Join(testFolder, "test.lock"))
+
+	//invalid case, file already exist
+	sPath, dPath, err = internals.GetPathsForEncryption(decryptedFilePathRelative, folderTestPathRelative)
+	assert.NotNil(t, err)
+
+	unecryptedFilePath := filepath.Join(currentFolder, "testfile.txt")
+	ecryptedFilePath := filepath.Join(currentFolder, "testfile.txt.lock")
+
+	//valid case, providing source file and destination
+	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, ecryptedFilePath)
+	assert.Nil(t, err)
+	assert.Equal(t, sPath, unecryptedFilePath)
+	assert.Equal(t, dPath, ecryptedFilePath)
 
 	//valid case, providing source file and directory as destination, dest file should be dir + filename + .lock
-	sPath, dPath, err = internals.GetPathsForEncryption(decryptedFilePathRelative, folderTestPathRelative)
+	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, testFolder)
 	assert.Nil(t, err)
-	assert.Equal(t, sPath, decryptedFilePathRelative)
-	assert.Equal(t, dPath, filepath.Join(folderTestPathRelative, "test.txt.lock"))
+	assert.Equal(t, sPath, unecryptedFilePath)
+	assert.Equal(t, dPath, filepath.Join(testFolder, "testfile.txt.lock"))
+
 }
 
 func Test_GetPathsForDecryption(t *testing.T) {
+	setUpTest()
+	defer teardownTest()
 	// invalid case, no source Path
 	_, _, err := internals.GetPathsForDecryption("", decryptedFilePathAbsolute)
 	assert.NotNil(t, err)
@@ -163,6 +174,8 @@ func Test_GetPathsForDecryption(t *testing.T) {
 }
 
 func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
+	setUpTest()
+	defer teardownTest()
 	bytePassword, err := scrypt.Key([]byte("test"), nil, 32768, 8, 2, 32)
 	if err != nil {
 		t.Fail()
