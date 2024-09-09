@@ -20,7 +20,7 @@ var clip bool
 
 // dataCmd represents the data command
 var dataCmd = &cobra.Command{
-	Use:   "data]",
+	Use:   "data",
 	Short: "Decrypts data",
 	Long: `Decrypts previously encrypted data with provided data id and login
 Usage:
