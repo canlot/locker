@@ -13,7 +13,9 @@ import (
 	"time"
 )
 
-const MagicString = "locker"
+func GetMagicString() []byte {
+	return []byte{76, 111, 99, 107, 101, 114, 58}
+}
 
 func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -188,10 +190,24 @@ func fileIsEncrypted(path string) (bool, error) {
 		return false, err
 	}
 	defer file.Close()
-	uid := make([]byte, 36)
-	_, err = file.Read(uid)
+
+	marker := make([]byte, len(GetMagicString()))
+	uid := make([]byte, 16)
+
+	n, err := file.Read(marker)
 	if err != nil {
 		return false, err
+	}
+	if n < len(GetMagicString()) {
+		return false, nil
+	}
+
+	n, err = file.Read(uid)
+	if err != nil {
+		return false, err
+	}
+	if n < len(uid) {
+		return false, nil
 	}
 	_, err = uuid.ParseBytes(uid)
 	if err == nil { //if file has uuid at start
