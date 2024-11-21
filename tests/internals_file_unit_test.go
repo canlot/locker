@@ -2,7 +2,9 @@ package tests
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/scrypt"
 	"io"
@@ -16,6 +18,7 @@ import (
 var baseFolder string
 var testFolder string
 var currentFolder string
+
 var folderTestPathAbsolute string
 var folderTestPathRelative string
 var encryptedFilePathAbsolute string
@@ -31,7 +34,10 @@ func getSha256HashFile(filePath string) (hash []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		derr := file.Close()
+		err = errors.Join(err, derr)
+	}(file)
 	h := sha256.New()
 	if _, err := io.Copy(h, file); err != nil {
 		return nil, err
@@ -51,24 +57,42 @@ func copyFile(src, dst string) error {
 	}
 	return nil
 }
+func createPseudoEncryptedFile(filePath string) (err error) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer func(file *os.File) {
+		derr := file.Close()
+		err = errors.Join(err, derr)
+	}(file)
+	magic := []byte{76, 111, 99, 107, 101, 114, 58}
+	uid, err := uuid.New().MarshalBinary()
+	fmt.Println(len(uid))
+	if err != nil {
+		return err
+	}
+	file.Write(magic)
+	file.Write(uid)
+	return nil
+}
 func setUpTest() error {
 	path, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	baseFolder = path
-	err = os.Mkdir(filepath.Join(path, "test"), 0777)
+	err = os.Mkdir(filepath.Join(path, "running_testcases"), 0777)
 	if err != nil {
 		return err
 	}
 	currentFolder = filepath.Join(path, "test")
-
-	err = copyFile(filepath.Join("artifacts", "testfile.txt"), filepath.Join(currentFolder, "testfile.txt"))
+	err = os.Chdir(currentFolder)
 	if err != nil {
 		return err
 	}
 
-	err = os.Chdir(currentFolder)
+	err = copyFile(filepath.Join("artifacts", "testfile.txt"), filepath.Join(currentFolder, "testfile.txt"))
 	if err != nil {
 		return err
 	}
@@ -82,21 +106,6 @@ func setUpTest() error {
 		return err
 	}
 
-	decryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "test.txt")
-	decryptedFilePathRelative = filepath.Join(testFolder, "test.txt")
-	encryptedFilePathAbsolute = filepath.Join(folderTestPathAbsolute, "test.txt.lock")
-	encryptedFilePathRelative = filepath.Join(testFolder, "test.txt.lock")
-
-	file, err := os.Create(encryptedFilePathAbsolute)
-	defer file.Close()
-	if err != nil {
-		return err
-	}
-	file, err = os.Create(decryptedFilePathAbsolute)
-	defer file.Close()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
