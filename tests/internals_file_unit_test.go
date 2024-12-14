@@ -138,25 +138,41 @@ func Test_GetPathsForEncryption(t *testing.T) {
 
 	_, _, err = internals.GetPathsForEncryption(plainFile, encryptedFile)
 	assert.NotNil(t, err)
+	////
 
 	//valid case
-	dPath, sPath, err := internals.GetPathsForEncryption(plainFile, "test.lock")
+	sPath, dPath, err := internals.GetPathsForEncryption(plainFile, "test.lock")
 	assert.Nil(t, err)
-	assert.Equal(t, dPath, plainFile)
-	assert.Equal(t, sPath, "test.lock")
+	assert.Equal(t, sPath, plainFile)
+	assert.Equal(t, dPath, "test.lock")
+	////
 
-	//invalid case, file already exist
-	sPath, dPath, err = internals.GetPathsForEncryption(decryptedFilePathRelative, folderTestPathRelative)
+	//valid case
+	testDirRelative := "testDir"
+	err = os.Mkdir(testDirRelative, 0777)
+	assert.Nil(t, err)
+	sPath, dPath, err = internals.GetPathsForEncryption(plainFile, testDirRelative)
+	assert.Nil(t, err)
+	assert.Equal(t, sPath, plainFile)
+	assert.Equal(t, dPath, filepath.Join(testDirRelative, "testfile.txt.lock"))
+	////
+
+	//invalid case, file already in destination, and no destination filename given, it should generate the same name as the file that already exists
+	err = copyFile(filepath.Join(artifactsFolder, encryptedFile), filepath.Join(testDirRelative, "testfile.txt.lock"))
+	assert.Nil(t, err)
+
+	_, _, err = internals.GetPathsForEncryption(plainFile, testDirRelative)
 	assert.NotNil(t, err)
+	///
 
 	unecryptedFilePath := filepath.Join(currentFolder, "testfile.txt")
-	ecryptedFilePath := filepath.Join(currentFolder, "testfile.txt.lock")
+	encryptedFilePath := filepath.Join(currentFolder, "testfile.txt.lock")
 
 	//valid case, providing source file and destination
-	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, ecryptedFilePath)
+	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, encryptedFilePath)
 	assert.Nil(t, err)
 	assert.Equal(t, sPath, unecryptedFilePath)
-	assert.Equal(t, dPath, ecryptedFilePath)
+	assert.Equal(t, dPath, encryptedFilePath)
 
 	//valid case, providing source file and directory as destination, dest file should be dir + filename + .lock
 	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, testFolder)
