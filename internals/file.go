@@ -184,6 +184,7 @@ func GetPathsForDecryption(sourcePath, destinationPath string) (sPath, dPath str
 	}
 	return sourcePath, dPath, nil
 }
+
 func fileIsEncrypted(path string) (bool, error) {
 	file, err := os.Open(path)
 	if err != nil {
