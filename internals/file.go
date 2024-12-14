@@ -87,7 +87,7 @@ func GetPathsForEncryption(sourcePath, destinationPath string) (sPath, dPath str
 
 	if destinationPath == "" {
 		destinationPath = sourcePath + ".lock"
-		return sourcePath, dPath, nil
+		return sourcePath, destinationPath, nil
 	}
 
 	dstPathExists, err := pathExists(destinationPath)
@@ -195,6 +195,7 @@ func fileIsEncrypted(path string) (bool, error) {
 	marker := make([]byte, len(GetMagicString()))
 	uid := make([]byte, 16)
 
+	// magic string at start comparison
 	n, err := file.Read(marker)
 	if err != nil {
 		return false, err
@@ -202,6 +203,10 @@ func fileIsEncrypted(path string) (bool, error) {
 	if n < len(GetMagicString()) {
 		return false, nil
 	}
+	if !bytes.Equal(GetMagicString(), marker) {
+		return false, nil
+	}
+	////
 
 	n, err = file.Read(uid)
 	if err != nil {
@@ -296,7 +301,20 @@ func EncryptFile(sourcePath, destinationPath string) error {
 
 	defer destinationFile.Close()
 
-	destinationFile.Write(uid)
+	n, err := destinationFile.Write(GetMagicString())
+	if err != nil {
+		return err
+	}
+	if n != len(GetMagicString()) {
+		return errors.New("Magix string has not been written")
+	}
+	n, err = destinationFile.Write(uid)
+	if err != nil {
+		return err
+	}
+	if n != 36 {
+		return errors.New("UUID has not been written")
+	}
 
 	randomPassword := cryptography.GenerateRandomBytes()
 
@@ -351,8 +369,19 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	}
 	defer encryptedFile.Close()
 
+	marker := make([]byte, len(GetMagicString()))
+	byteCount, err := encryptedFile.Read(marker)
+	if err != nil {
+		return err
+	}
+	if byteCount != len(GetMagicString()) {
+		return errors.New("Not enough bytes read")
+	}
+	if !bytes.Equal(marker, GetMagicString()) {
+		return errors.New("File has no marker")
+	}
 	uid := make([]byte, 36)
-	byteCount, err := encryptedFile.Read(uid)
+	byteCount, err = encryptedFile.Read(uid)
 	if err != nil {
 		return err
 	}

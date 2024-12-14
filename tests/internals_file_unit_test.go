@@ -20,12 +20,8 @@ var testFolder string
 var artifactsFolder string
 var currentFolder string
 
-var folderTestPathAbsolute string
-var folderTestPathRelative string
-var encryptedFilePathAbsolute string
 var encryptedFilePathRelative string
 var decryptedFilePathAbsolute string
-var decryptedFilePathRelative string
 
 func init() {
 
@@ -202,23 +198,25 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 		t.Fail()
 		return
 	}
-	unencryptedFilePath := filepath.Join(testFolder, "testfile.txt")
-	encryptedFilePath := filepath.Join(testFolder, "testfile.txt.lock")
-	decryptedFilePath := filepath.Join(testFolder, "testfile_decrypted.txt")
 
-	unencryptedFileHash, err := getSha256HashFile(unencryptedFilePath)
+	unencryptedFileName := "testfile.txt"
+	encryptedFileName := "testfile.txt.lock"
+	decryptedFileName := "testfile_decrypted.txt"
+	err = copyFile(filepath.Join(artifactsFolder, unencryptedFileName), filepath.Join(currentFolder, unencryptedFileName))
+
+	unencryptedFileHash, err := getSha256HashFile(unencryptedFileName)
 	if err != nil {
 		t.Fail()
 		return
 	}
 
-	fileSrcUnencrypted, err := os.Open(unencryptedFilePath)
+	fileSrcUnencrypted, err := os.Open(unencryptedFileName)
 	defer fileSrcUnencrypted.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fileDstEncrypted, err := os.Create(encryptedFilePath)
+	fileDstEncrypted, err := os.Create(encryptedFileName)
 	defer fileDstEncrypted.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -233,12 +231,12 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 	fileSrcUnencrypted.Close()
 	fileDstEncrypted.Close()
 
-	fileSrcEncrypted, err := os.Open(encryptedFilePath)
+	fileSrcEncrypted, err := os.Open(encryptedFileName)
 	defer fileSrcEncrypted.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	fileDstDecrypted, err := os.Create(decryptedFilePath)
+	fileDstDecrypted, err := os.Create(decryptedFileName)
 	defer fileDstDecrypted.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -253,7 +251,7 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 
 	assert.Equal(t, unencryptedFileHash, byteHashDecrypted)
 
-	decryptedFileHash, err := getSha256HashFile(decryptedFilePath)
+	decryptedFileHash, err := getSha256HashFile(decryptedFileName)
 	if err != nil {
 		t.Fatal(err)
 	}
