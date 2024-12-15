@@ -26,6 +26,7 @@ const PublicKeyKeyName = "PublicKey"
 const PrivateKeyHashKeyName = "PrivateKeyHash"
 
 const BucketVersion = "BucketVersion"
+const DBVersionName = "DBVersion"
 
 func init() {
 
@@ -38,6 +39,10 @@ func CreateDatabaseIfNotExists() {
 		log.Fatal(err)
 	}
 	err = Database.Update(createBuckets)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = writeVersion()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,6 +101,29 @@ func createBuckets(tx *bolt.Tx) error {
 	}
 	return nil
 }
+
+func writeVersion() error {
+	tx, err := Database.Begin(true)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	empty, err := IsBucketEmpty(tx, BucketVersion)
+	if empty {
+		bucket := tx.Bucket([]byte(BucketVersion))
+		if bucket == nil {
+			return err
+		}
+		err = bucket.Put([]byte(DBVersionName), []byte(DBVersion))
+		if err != nil {
+			return err
+		}
+	}
+	tx.Commit()
+	return nil
+}
+
 func getValue(tx *bolt.Tx, uid []byte, bucketName string) (value []byte, err error) {
 	bucket := tx.Bucket([]byte(bucketName))
 	if bucket == nil {
