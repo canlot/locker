@@ -258,3 +258,32 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 	assert.Equal(t, unencryptedFileHash, decryptedFileHash)
 
 }
+
+func Test_GetVersionInInt(t *testing.T) {
+	version := "1"
+	versionInt, err := internals.GetVersionInInt(version)
+	assert.Nil(t, err)
+	assert.Equal(t, 1*1000*1000*1000, versionInt)
+
+	version = "1.0.1.1"
+	versionInt, err = internals.GetVersionInInt(version)
+	assert.Nil(t, err)
+	assert.Equal(t, 1_000_001_001, versionInt)
+
+	version = "5.23.005"
+	versionInt, err = internals.GetVersionInInt(version)
+	assert.Nil(t, err)
+	assert.Equal(t, 5_023_005_000, versionInt)
+
+	version = "5.34b"
+	versionInt, err = internals.GetVersionInInt(version)
+	assert.NotNil(t, err)
+
+	version = "5.10.5.3853"
+	versionInt, err = internals.GetVersionInInt(version)
+	assert.NotNil(t, err)
+
+	version = "1.2.3.4.5"
+	versionInt, err = internals.GetVersionInInt(version)
+	assert.NotNil(t, err)
+}

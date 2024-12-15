@@ -10,6 +10,7 @@ import (
 
 func main() {
 	internals.CreateDatabaseIfNotExists()
+	internals.CompareVersions()
 	defer internals.Database.Close()
 	cmd.Execute()
 }

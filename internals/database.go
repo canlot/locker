@@ -25,6 +25,8 @@ const BucketFileHash = "BucketFileHash"
 const PublicKeyKeyName = "PublicKey"
 const PrivateKeyHashKeyName = "PrivateKeyHash"
 
+const BucketVersion = "BucketVersion"
+
 func init() {
 
 }
@@ -39,6 +41,7 @@ func CreateDatabaseIfNotExists() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func createBuckets(tx *bolt.Tx) error {
@@ -84,6 +87,10 @@ func createBuckets(tx *bolt.Tx) error {
 		return err
 	}
 	_, err = tx.CreateBucketIfNotExists([]byte(BucketFileHash))
+	if err != nil {
+		return err
+	}
+	_, err = tx.CreateBucketIfNotExists([]byte(BucketVersion))
 	if err != nil {
 		return err
 	}
