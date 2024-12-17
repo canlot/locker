@@ -11,7 +11,7 @@ type DBStore struct {
 }
 
 type DataInformation struct {
-	Label      string
+	Name       string
 	CreateTime time.Time
 }
 

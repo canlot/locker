@@ -9,7 +9,7 @@ import (
 	"main/cmd/decrypt"
 	"main/cmd/delete"
 	"main/cmd/encrypt"
-	"main/cmd/list"
+	"main/cmd/show"
 	"os"
 )
 
@@ -37,7 +37,7 @@ func init() {
 	RootCmd.AddCommand(decrypt.DecryptCmd)
 	RootCmd.AddCommand(delete.DeleteCmd)
 	RootCmd.AddCommand(encrypt.EncryptCmd)
-	RootCmd.AddCommand(list.ListCmd)
+	RootCmd.AddCommand(show.ShowCmd)
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.

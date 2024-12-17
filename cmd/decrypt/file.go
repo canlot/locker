@@ -11,9 +11,8 @@ import (
 	"syscall"
 )
 
-var file string
+var source string
 var destination string
-var loginFile string
 
 // fileCmd represents the file command
 var fileCmd = &cobra.Command{
@@ -21,12 +20,12 @@ var fileCmd = &cobra.Command{
 	Short: "Decrypts file",
 	Long: `Decrypts previously encrypted file with provided data id and login
 Usage:
-	locker decrypt file --file /var/file.lock
-	locker decrypt file --file /var/file.lock --destination /opt`,
+	locker decrypt file --source /var/file.lock
+	locker decrypt file --source /var/file.lock --destination /opt`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Password: ")
 		password, err := term.ReadPassword(int(syscall.Stdin))
-		err = internals.DecryptFile(file, destination, loginFile, string(password))
+		err = internals.DecryptFile(source, destination, login, string(password))
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
@@ -36,10 +35,10 @@ Usage:
 }
 
 func init() {
-	fileCmd.Flags().StringVarP(&file, "file", "f", "", "encrypted file")
-	fileCmd.MarkFlagRequired("file")
-	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file")
-	fileCmd.Flags().StringVarP(&loginFile, "login", "l", "", "Login name")
+	fileCmd.Flags().StringVarP(&source, "source", "s", "", "encrypted file")
+	fileCmd.MarkFlagRequired("source")
+	fileCmd.Flags().StringVarP(&destination, "destination", "d", "", "destination file")
+	fileCmd.Flags().StringVarP(&login, "login", "l", "", "Login name")
 	fileCmd.MarkFlagRequired("login")
 	DecryptCmd.AddCommand(fileCmd)
 

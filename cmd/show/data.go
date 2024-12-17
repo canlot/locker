@@ -1,7 +1,7 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 */
-package list
+package show
 
 import (
 	"fmt"
@@ -11,9 +11,9 @@ import (
 	"main/internals"
 )
 
-// filesCmd represents the files command
-var filesCmd = &cobra.Command{
-	Use:   "files",
+// dataCmd represents the data command
+var dataCmd = &cobra.Command{
+	Use:   "data",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -22,16 +22,16 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		keys, hashes, fileInfo, err := internals.ListAllFiles()
+		keys, dataInfo, err := internals.ListAllData()
 		if err != nil {
 			fmt.Println("Error occured")
 			return
 		} else {
-			tbl := table.New("Key", "Hash", "Path", "Creation time")
+			tbl := table.New("Key", "Name", "Creation time")
 			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 			tbl.WithHeaderFormatter(headerFmt)
 			for i := 0; i < len(keys); i++ {
-				tbl.AddRow(keys[i], hashes[i], fileInfo[i].Path, fileInfo[i].CreateTime)
+				tbl.AddRow(keys[i], dataInfo[i].Name, dataInfo[i].CreateTime)
 			}
 			tbl.Print()
 		}
@@ -39,15 +39,15 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	ListCmd.AddCommand(filesCmd)
+	ShowCmd.AddCommand(dataCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// filesCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// dataCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// filesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// dataCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

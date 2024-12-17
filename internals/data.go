@@ -32,13 +32,13 @@ func ListAllData() (keys []string, dataInfo []DataInformation, err error) {
 	}
 	return keys, dataInfo, nil
 }
-func EncryptData(label, plainData string) error {
+func EncryptData(name, plainData string) error {
 	tx, err := Database.Begin(true)
 	defer tx.Rollback()
 	if err != nil {
 		return err
 	}
-	data := DataInformation{Label: label, CreateTime: time.Now()}
+	data := DataInformation{Name: name, CreateTime: time.Now()}
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -48,7 +48,6 @@ func EncryptData(label, plainData string) error {
 		return err
 	}
 	randomPasswordByte := cryptography.GenerateRandomBytes()
-	//fmt.Printf("Random password: %x\n", randomPasswordByte)
 	dataInfoBucket := tx.Bucket([]byte(BucketDataInformation))
 	if dataInfoBucket == nil {
 		return errors.New("Bucket: " + BucketDataInformation + " doesn't exist")
@@ -70,7 +69,6 @@ func EncryptData(label, plainData string) error {
 	if err != nil {
 		return err
 	}
-	//fmt.Printf("Encrypted random password: %x\n", encryptedRandomPassword)
 
 	encrypteDataBucket := tx.Bucket([]byte(BucketDataEncrypted))
 	if encrypteDataBucket == nil {
@@ -123,7 +121,6 @@ func DecryptData(dataid, login, password string) (dataInfo DataInformation, plai
 		return dataInfo, "", errors.New("No bucket found")
 	}
 	encryptedRandomPasswordForData := passwordDataBucket.Get(dataIdBytes)
-	//fmt.Printf("encrypted data password: %x\n", encryptedRandomPasswordForData)
 	if encryptedRandomPasswordForData == nil {
 		return dataInfo, "", errors.New("No encrypted password found")
 	}
@@ -139,7 +136,6 @@ func DecryptData(dataid, login, password string) (dataInfo DataInformation, plai
 	if encryptedData == nil {
 		return dataInfo, "", errors.New("No data found")
 	}
-	//fmt.Printf("Decrypted password: %x\n", decryptedRandomPasswordForData)
 	decryptedData, err := cryptography.DecryptDataSymmetric(decryptedRandomPasswordForData, encryptedData)
 	if err != nil {
 		return dataInfo, "", err

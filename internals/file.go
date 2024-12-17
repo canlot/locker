@@ -315,9 +315,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if n != 36 {
 		return errors.New("UUID has not been written")
 	}
-
 	randomPassword := cryptography.GenerateRandomBytes()
-
 	hashBytes, err := cryptography.EncryptFileSymmetricWithHash(randomPassword, sourceFile, destinationFile)
 	if err != nil {
 		return err

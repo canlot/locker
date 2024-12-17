@@ -9,7 +9,7 @@ import (
 	"main/internals"
 )
 
-var file string
+var source string
 var destination string
 
 // fileCmd represents the file command
@@ -20,7 +20,7 @@ var fileCmd = &cobra.Command{
 Usage:
 	locker encrypt file --file /var/file --destination /var/file.locked`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := internals.EncryptFile(file, destination)
+		err := internals.EncryptFile(source, destination)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -28,8 +28,8 @@ Usage:
 }
 
 func init() {
-	fileCmd.Flags().StringVarP(&file, "file", "f", "", "source file")
-	fileCmd.MarkFlagRequired("file")
+	fileCmd.Flags().StringVarP(&source, "source", "s", "", "source file")
+	fileCmd.MarkFlagRequired("source")
 	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file or path")
 	EncryptCmd.AddCommand(fileCmd)
 

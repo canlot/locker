@@ -1,15 +1,15 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 */
-package list
+package show
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// showCmd represents the list command
-var ListCmd = &cobra.Command{
-	Use:   "list",
+// showCmd represents the show command
+var ShowCmd = &cobra.Command{
+	Use:   "show",
 	Short: "Show an overview of available logins, data or files",
 	Long:  ``,
 }

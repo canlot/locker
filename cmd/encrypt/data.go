@@ -10,17 +10,17 @@ import (
 )
 
 var data string
-var label string
+var name string
 
 // dataCmd represents the data command
 var dataCmd = &cobra.Command{
 	Use:   "data",
 	Short: "Encrypts data",
-	Long: `Encrypts data, provided label will be saved in the database to identify encrypted data
+	Long: `Encrypts data, provided name will be saved in the database to identify encrypted data
 Usage:
-	locker encrypt data --label datalabel --data secretdata`,
+	locker encrypt data --name dataname --data secretdata`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := internals.EncryptData(label, data)
+		err := internals.EncryptData(name, data)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -30,8 +30,8 @@ Usage:
 func init() {
 	dataCmd.Flags().StringVarP(&data, "data", "d", "", "Plain data that will be encrypted")
 	dataCmd.MarkFlagRequired("data")
-	dataCmd.Flags().StringVarP(&label, "label", "l", "", "Label for data")
-	dataCmd.MarkFlagRequired("label")
+	dataCmd.Flags().StringVarP(&name, "name", "n", "", "Name for data")
+	dataCmd.MarkFlagRequired("name")
 	EncryptCmd.AddCommand(dataCmd)
 
 	// Here you will define your flags and configuration settings.

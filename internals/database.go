@@ -115,7 +115,7 @@ func writeVersion() error {
 		if bucket == nil {
 			return err
 		}
-		err = bucket.Put([]byte(DBVersionName), []byte(DBVersion))
+		err = bucket.Put([]byte(DBVersionName), []byte(DBSchemaVersion))
 		if err != nil {
 			return err
 		}
@@ -124,42 +124,43 @@ func writeVersion() error {
 	return nil
 }
 
-func getValue(tx *bolt.Tx, uid []byte, bucketName string) (value []byte, err error) {
+func getValue(tx *bolt.Tx, key []byte, bucketName string) (value []byte, err error) {
 	bucket := tx.Bucket([]byte(bucketName))
 	if bucket == nil {
 		return nil, errors.New("Bucket: " + bucketName + " doesn't exist")
 	}
-	value = bucket.Get(uid)
+	value = bucket.Get(key)
 	if value == nil {
-		return nil, errors.New("No value for id: " + string(uid) + " in bucket: " + bucketName + " found")
+		return nil, errors.New("No value for id: " + string(key) + " in bucket: " + bucketName + " found")
 	}
 	return value, nil
 }
-func saveValue(tx *bolt.Tx, uid, value []byte, bucketName string) error {
+
+func saveValue(tx *bolt.Tx, key, value []byte, bucketName string) error {
 	bucket := tx.Bucket([]byte(bucketName))
 	if bucket == nil {
 		return errors.New("Bucket: " + bucketName + " doesn't exist")
 	}
-	err := bucket.Put(uid, value)
+	err := bucket.Put(key, value)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func deleteValue(tx *bolt.Tx, uid []byte, bucketName string) error {
+func deleteValue(tx *bolt.Tx, key []byte, bucketName string) error {
 	bucket := tx.Bucket([]byte(bucketName))
 	if bucket == nil {
 		return errors.New("Bucket: " + bucketName + " doesn't exist")
 	}
-	err := bucket.Delete(uid)
+	err := bucket.Delete(key)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func deleteValues(tx *bolt.Tx, uid []byte, bucketNames ...string) error {
+func deleteValues(tx *bolt.Tx, key []byte, bucketNames ...string) error {
 	for i := range bucketNames {
-		err := deleteValue(tx, uid, bucketNames[i])
+		err := deleteValue(tx, key, bucketNames[i])
 		if err != nil {
 			return err
 		}

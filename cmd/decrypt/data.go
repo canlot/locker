@@ -14,7 +14,6 @@ import (
 	"syscall"
 )
 
-var login string
 var id string
 var clip bool
 
@@ -34,10 +33,10 @@ Usage:
 			fmt.Println(err.Error())
 		} else {
 			if !clip {
-				tbl := table.New("Label", "Decrypted data", "Creation time")
+				tbl := table.New("Name", "Decrypted data", "Creation time")
 				headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 				tbl.WithHeaderFormatter(headerFmt)
-				tbl.AddRow(dataInfo.Label, plainData, dataInfo.CreateTime)
+				tbl.AddRow(dataInfo.Name, plainData, dataInfo.CreateTime)
 				tbl.Print()
 			} else {
 				err := clipboard.Init()

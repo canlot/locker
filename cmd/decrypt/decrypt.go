@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var login string
+
 // decryptCmd represents the decrypt command
 var DecryptCmd = &cobra.Command{
 	Use:   "decrypt",

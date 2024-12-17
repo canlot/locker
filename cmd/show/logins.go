@@ -1,7 +1,7 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 */
-package list
+package show
 
 import (
 	"fmt"
@@ -21,21 +21,20 @@ var loginsCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println("Error occured")
 			return
-		} else {
-			tbl := table.New("Login", "Creation time")
-			headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
-			tbl.WithHeaderFormatter(headerFmt)
-			for _, login := range logins {
-				tbl.AddRow(login.Login, login.CreateTime)
-			}
-			tbl.Print()
 		}
 
+		tbl := table.New("Login", "Creation time")
+		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+		tbl.WithHeaderFormatter(headerFmt)
+		for _, login := range logins {
+			tbl.AddRow(login.Login, login.CreateTime)
+		}
+		tbl.Print()
 	},
 }
 
 func init() {
-	ListCmd.AddCommand(loginsCmd)
+	ShowCmd.AddCommand(loginsCmd)
 
 	// Here you will define your flags and configuration settings.
 

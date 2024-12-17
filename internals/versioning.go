@@ -10,12 +10,73 @@ import (
 const AppVersion = "1.0.0.1"
 
 const MinDBVersion = "1.0.0"
-const MaxDBVersion = ""
+const MaxDBVersion = "1.999.999.999"
 
-const DBVersion = "1.0.0"
+const DBSchemaVersion = "1.0.0"
+
+type Version struct {
+	Version     string
+	Name        string
+	Description string
+}
+
+func GetAllVersions() ([5]Version, error) {
+	versions := [5]Version{}
+
+	versions[0] = Version{
+		Version:     AppVersion,
+		Name:        "AppVersion",
+		Description: "Version of the application",
+	}
+
+	tx, err := Database.Begin(false)
+	if err != nil {
+		return versions, errors.New("Database is not accessible")
+	}
+	defer tx.Rollback()
+
+	dbVersionBytes, err := getValue(tx, []byte(DBVersionName), BucketVersion)
+	if err != nil {
+		return versions, errors.New("Could not read version from database")
+	}
+	dbVersionString := string(dbVersionBytes)
+
+	versions[1] = Version{
+		Version:     dbVersionString,
+		Name:        "DBVersion",
+		Description: "Database version of current database db_locker.db in this directory",
+	}
+	versions[2] = Version{
+		Version:     MinDBVersion,
+		Name:        "MinDBVersion",
+		Description: "Minimum supported database version",
+	}
+	versions[3] = Version{
+		Version:     MaxDBVersion,
+		Name:        "MaxDBVersion",
+		Description: "Maximum supported database version",
+	}
+	versions[4] = Version{
+		Version:     DBSchemaVersion,
+		Name:        "DBSchemaVersion",
+		Description: "Database version if new database would be created",
+	}
+	return versions, nil
+}
 
 func CompareVersions() {
-	dbVersion, err := GetVersionInInt(DBVersion)
+	tx, err := Database.Begin(false)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer tx.Rollback()
+
+	dbVersionBytes, err := getValue(tx, []byte(DBVersionName), BucketVersion)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dbVersionString := string(dbVersionBytes)
+	dbVersion, err := GetVersionInInt(dbVersionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,7 +88,7 @@ func CompareVersions() {
 		}
 	}
 	if MinDBVersion != "" && dbVersion < minVersion {
-		log.Fatalf("DB version %s is less than min version %s", dbVersion, MinDBVersion)
+		log.Fatalf("DB version %s is less than min allowed version %s", dbVersionString, MinDBVersion)
 	}
 
 	var maxVersion int
@@ -38,7 +99,7 @@ func CompareVersions() {
 		}
 	}
 	if MaxDBVersion != "" && dbVersion > maxVersion {
-		log.Fatalf("DB version %s is greater than max version %s", dbVersion, MaxDBVersion)
+		log.Fatalf("DB version %s is greater than max allowed version %s", dbVersionString, MaxDBVersion)
 	}
 
 }
