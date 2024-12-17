@@ -58,6 +58,7 @@ func EncryptData(name, plainData string) error {
 	}
 
 	encryptedData, err := cryptography.EncryptDataSymmetric(randomPasswordByte, []byte(plainData))
+
 	if err != nil {
 		return err
 	}

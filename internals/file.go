@@ -394,6 +394,7 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 	loginId, err := getLoginId(login, tx)
 	if err != nil {
 		return err
