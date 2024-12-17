@@ -30,7 +30,7 @@ Usage:
 func init() {
 	fileCmd.Flags().StringVarP(&source, "source", "s", "", "source file")
 	fileCmd.MarkFlagRequired("source")
-	fileCmd.Flags().StringVar(&destination, "destination", "", "destination file or path")
+	fileCmd.Flags().StringVarP(&destination, "destination", "d", "", "destination file or path")
 	EncryptCmd.AddCommand(fileCmd)
 
 	// Here you will define your flags and configuration settings.
