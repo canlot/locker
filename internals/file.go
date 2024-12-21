@@ -271,6 +271,10 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return err
 	}
+	info, err := sourceFile.Stat()
+	if err != nil {
+		return err
+	}
 
 	tx, err := Database.Begin(true)
 	if err != nil {
@@ -316,7 +320,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 		return errors.New("UUID has not been written")
 	}
 	randomPassword := cryptography.GenerateRandomBytes()
-	hashBytes, err := cryptography.EncryptFileSymmetricWithHash(randomPassword, sourceFile, destinationFile)
+	hashBytes, err := cryptography.EncryptFileSymmetricWithHash(randomPassword, sourceFile, destinationFile, info.Size())
 	if err != nil {
 		return err
 	}
@@ -366,6 +370,11 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 		return err
 	}
 	defer encryptedFile.Close()
+
+	fileInfo, err := encryptedFile.Stat()
+	if err != nil {
+		return err
+	}
 
 	marker := make([]byte, len(GetMagicString()))
 	byteCount, err := encryptedFile.Read(marker)
@@ -423,7 +432,7 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
-	hashBytes, err := cryptography.DecryptFileSymmetricWithHash(filePasswordDecrypted, encryptedFile, decryptedFile)
+	hashBytes, err := cryptography.DecryptFileSymmetricWithHash(filePasswordDecrypted, encryptedFile, decryptedFile, (fileInfo.Size() - int64(len(marker)+len(uid))))
 	if err != nil {
 		return err
 	}

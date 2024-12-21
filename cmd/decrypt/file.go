@@ -29,7 +29,7 @@ Usage:
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
-			fmt.Println("Data decrypted")
+			fmt.Println("File decrypted")
 		}
 	},
 }

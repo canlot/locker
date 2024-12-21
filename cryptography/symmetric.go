@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"errors"
+	"github.com/schollz/progressbar/v3"
 	"io"
 )
 
@@ -51,7 +52,7 @@ func DecryptDataSymmetric(password, encryptedData []byte) (plainData []byte, err
 	return out.Bytes(), nil
 }
 
-func EncryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWriter io.Writer) ([]byte, error) {
+func EncryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWriter io.Writer, fileSize int64) ([]byte, error) {
 	if len(password) != 32 {
 		return nil, errors.New("Password not 32 bytes long")
 	}
@@ -66,8 +67,12 @@ func EncryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWri
 	cryptWriter := &cipher.StreamWriter{S: stream, W: fileWriter}
 
 	hash := sha256.New()
+	bar := progressbar.DefaultBytes(
+		fileSize,
+		"Encrypting: ",
+	)
 
-	multiWriter := io.MultiWriter(cryptWriter, hash)
+	multiWriter := io.MultiWriter(cryptWriter, hash, bar)
 
 	if _, err = io.Copy(multiWriter, fileReader); err != nil {
 		return nil, err
@@ -75,7 +80,7 @@ func EncryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWri
 	return hash.Sum(nil), nil
 }
 
-func DecryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWriter io.Writer) ([]byte, error) {
+func DecryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWriter io.Writer, fileSize int64) ([]byte, error) {
 	if len(password) != 32 {
 		errors.New("Password not 32 bytes long")
 	}
@@ -89,7 +94,12 @@ func DecryptFileSymmetricWithHash(password []byte, fileReader io.Reader, fileWri
 	cryptReader := &cipher.StreamReader{S: stream, R: fileReader}
 
 	hash := sha256.New()
-	multiWriter := io.MultiWriter(fileWriter, hash)
+
+	bar := progressbar.DefaultBytes(
+		fileSize,
+		"Decrypting: ",
+	)
+	multiWriter := io.MultiWriter(fileWriter, hash, bar)
 
 	// Copy the input to the output stream, decrypting as we go.
 	if _, err := io.Copy(multiWriter, cryptReader); err != nil {
