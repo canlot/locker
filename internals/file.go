@@ -253,6 +253,11 @@ func ListAllFiles() (ids, hashes []string, fileInfo []FileInformation, err error
 	return ids, hashes, fileInfo, nil
 }
 func EncryptFile(sourcePath, destinationPath string) error {
+
+	///////////////////////////////
+	//////// some checks /////////
+	/////////////////////////////
+
 	sourcePath, destinationPath, err := GetPathsForEncryption(sourcePath, destinationPath)
 	if err != nil {
 		return err
@@ -356,10 +361,19 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	return nil
 }
 func DecryptFile(sourcePath, destinationPath, login, password string) error {
+
+	///////////////////////////
+	////// some checks ///////
+	/////////////////////////
+
 	sourcePath, destinationPath, err := GetPathsForDecryption(sourcePath, destinationPath)
 	if err != nil {
 		return err
 	}
+	//////////////////////////////////////
+	//// opening and creating files /////
+	////////////////////////////////////
+
 	encryptedFile, err := os.Open(sourcePath)
 	if err != nil {
 		return err
@@ -371,11 +385,16 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	}
 	defer encryptedFile.Close()
 
+	////////////////////////////
+	//////// header part //////
+	//////////////////////////
+
 	fileInfo, err := encryptedFile.Stat()
 	if err != nil {
 		return err
 	}
 
+	// retrieving "magic marker" some special bytes from header of file
 	marker := make([]byte, len(GetMagicString()))
 	byteCount, err := encryptedFile.Read(marker)
 	if err != nil {
@@ -388,6 +407,7 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 		return errors.New("File has no marker")
 	}
 	uid := make([]byte, 36)
+	// retrieving a file guid from encrypted file, it will be used to find the right symmetric decryption key in the database
 	byteCount, err = encryptedFile.Read(uid)
 	if err != nil {
 		return err
@@ -399,6 +419,11 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
+
+	//////////////////////////////
+	/////// main part ///////////
+	////////////////////////////
+
 	tx, err := Database.Begin(true)
 	if err != nil {
 		return err
@@ -432,7 +457,9 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
-	hashBytes, err := cryptography.DecryptFileSymmetricWithHash(filePasswordDecrypted, encryptedFile, decryptedFile, (fileInfo.Size() - int64(len(marker)+len(uid))))
+
+	var fileSize = fileInfo.Size() - int64(len(marker)+len(uid))
+	hashBytes, err := cryptography.DecryptFileSymmetricWithHash(filePasswordDecrypted, encryptedFile, decryptedFile, fileSize)
 	if err != nil {
 		return err
 	}
@@ -440,6 +467,11 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
+
+	///////////////////////////
+	///////// comparing //////
+	/////////////////////////
+
 	fileHash, err := getValue(tx, uid, BucketFileHash)
 	if err != nil {
 		return err
@@ -453,6 +485,10 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	}
 	encryptedFile.Close()
 	decryptedFile.Close()
+
+	/////////////////////////////
+	////// tidy things up //////
+	///////////////////////////
 
 	err = os.Remove(sourcePath)
 	if err != nil {
