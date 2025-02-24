@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -221,8 +222,8 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	byteHash, err := cryptography.EncryptFileSymmetricWithHash(bytePassword, fileSrcUnencrypted, fileDstEncrypted)
+	var testBuffer bytes.Buffer
+	byteHash, err := cryptography.EncryptFileSymmetricWithHash(bytePassword, fileSrcUnencrypted, fileDstEncrypted, &testBuffer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,8 +242,9 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	testBuffer.Reset()
+	byteHashDecrypted, err := cryptography.DecryptFileSymmetricWithHash(bytePassword, fileSrcEncrypted, fileDstDecrypted, &testBuffer)
 
-	byteHashDecrypted, err := cryptography.DecryptFileSymmetricWithHash(bytePassword, fileSrcEncrypted, fileDstDecrypted)
 	if err != nil {
 		t.Fatal(err)
 	}

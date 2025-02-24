@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"github.com/schollz/progressbar/v3"
 	"main/cryptography"
 	"os"
 	"path/filepath"
@@ -271,6 +272,10 @@ func EncryptFile(sourcePath, destinationPath string) error {
 		return errors.New("File already encrypted")
 	}
 
+	//////////////////////////////////////
+	///////// file stuff ////////////////
+	////////////////////////////////////
+
 	sourceFile, err := os.Open(sourcePath)
 	defer sourceFile.Close()
 	if err != nil {
@@ -287,6 +292,10 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	}
 	defer tx.Rollback()
 
+	//////////////////////////////////////
+	/////////// header //////////////////
+	////////////////////////////////////
+
 	uid, err := uuid.New().MarshalText()
 	if err != nil {
 		return err
@@ -298,10 +307,6 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return err
 	}
-	publicKey, err := getPublicKey(tx)
-	if err != nil {
-		return err
-	}
 
 	destinationFile, err := os.Create(destinationPath)
 	if err != nil {
@@ -309,7 +314,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	}
 
 	defer destinationFile.Close()
-
+	// write magic string to file
 	n, err := destinationFile.Write(GetMagicString())
 	if err != nil {
 		return err
@@ -317,6 +322,7 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if n != len(GetMagicString()) {
 		return errors.New("Magix string has not been written")
 	}
+	// write uid to file
 	n, err = destinationFile.Write(uid)
 	if err != nil {
 		return err
@@ -324,11 +330,26 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	if n != 36 {
 		return errors.New("UUID has not been written")
 	}
+
+	//////////////////////////////////////////////////////
+	////////////////// main part ////////////////////////
+	////////////////////////////////////////////////////
+
 	randomPassword := cryptography.GenerateRandomBytes()
-	hashBytes, err := cryptography.EncryptFileSymmetricWithHash(randomPassword, sourceFile, destinationFile, info.Size())
+	progressBar := progressbar.DefaultBytes(
+		info.Size(),
+		"Encrypting: ",
+	)
+	publicKey, err := getPublicKey(tx)
 	if err != nil {
 		return err
 	}
+
+	hashBytes, err := cryptography.EncryptFileSymmetricWithHash(randomPassword, sourceFile, destinationFile, progressBar)
+	if err != nil {
+		return err
+	}
+
 	randomPasswordEncrypted, err := cryptography.EncryptDataAsymmetric(publicKey, randomPassword)
 	if err != nil {
 		return err
@@ -458,8 +479,12 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 		return err
 	}
 
-	var fileSize = fileInfo.Size() - int64(len(marker)+len(uid))
-	hashBytes, err := cryptography.DecryptFileSymmetricWithHash(filePasswordDecrypted, encryptedFile, decryptedFile, fileSize)
+	progressBar := progressbar.DefaultBytes(
+		fileInfo.Size()-int64(len(marker)+len(uid)),
+		"Decrypting: ",
+	)
+
+	hashBytes, err := cryptography.DecryptFileSymmetricWithHash(filePasswordDecrypted, encryptedFile, decryptedFile, progressBar)
 	if err != nil {
 		return err
 	}
@@ -495,5 +520,12 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 		return err
 	}
 	tx.Commit()
+	return nil
+}
+
+func RemovePathIfTrue(path string, remove *bool) error {
+	if *remove == true {
+		return os.Remove(path)
+	}
 	return nil
 }
