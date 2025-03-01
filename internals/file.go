@@ -381,13 +381,12 @@ func EncryptFile(sourcePath, destinationPath string) error {
 	tx.Commit()
 	return nil
 }
-func DecryptFile(sourcePath, destinationPath, login, password string) error {
-
+func DecryptFile(sourcePath, destinationPath, login, password string) (err error) {
 	///////////////////////////
 	////// some checks ///////
 	/////////////////////////
 
-	sourcePath, destinationPath, err := GetPathsForDecryption(sourcePath, destinationPath)
+	sourcePath, destinationPath, err = GetPathsForDecryption(sourcePath, destinationPath)
 	if err != nil {
 		return err
 	}
@@ -395,16 +394,65 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	//// opening and creating files /////
 	////////////////////////////////////
 
+	tx, err := Database.Begin(true)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		var errTmp error
+		if err != nil {
+			errTmp = tx.Rollback()
+			if errTmp != nil {
+				err = errors.Join(errTmp, err)
+			}
+			errTmp = os.Remove(destinationPath)
+			if err != nil {
+				err = errors.Join(errTmp, err)
+			}
+			return
+		}
+		if err == nil {
+			errTmp = tx.Commit()
+			if errTmp != nil {
+
+			}
+			errTmp = os.Remove(sourcePath)
+			if errTmp != nil {
+				err = errors.Join(errTmp, err)
+			}
+		}
+	}()
+
 	encryptedFile, err := os.Open(sourcePath)
 	if err != nil {
 		return err
 	}
-	defer encryptedFile.Close()
-	decryptedFile, _ := os.Create(destinationPath)
+	defer func() {
+		errTmp := encryptedFile.Close()
+		if errTmp != nil {
+			if err != nil {
+				err = errors.Join(errTmp, err)
+			} else {
+				err = errTmp
+			}
+		}
+	}()
+
+	decryptedFile, err := os.Create(destinationPath)
 	if err != nil {
 		return err
 	}
-	defer encryptedFile.Close()
+	defer func() {
+		errTmp := decryptedFile.Close()
+		if errTmp != nil {
+			if err != nil {
+				err = errors.Join(errTmp, err)
+			} else {
+				err = errTmp
+			}
+		}
+	}()
 
 	////////////////////////////
 	//////// header part //////
@@ -445,11 +493,6 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	/////// main part ///////////
 	////////////////////////////
 
-	tx, err := Database.Begin(true)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
 	loginId, err := getLoginId(login, tx)
 	if err != nil {
 		return err
@@ -488,10 +531,6 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
-	err = decryptedFile.Close()
-	if err != nil {
-		return err
-	}
 
 	///////////////////////////
 	///////// comparing //////
@@ -508,18 +547,11 @@ func DecryptFile(sourcePath, destinationPath, login, password string) error {
 	if err != nil {
 		return err
 	}
-	encryptedFile.Close()
-	decryptedFile.Close()
 
 	/////////////////////////////
 	////// tidy things up //////
 	///////////////////////////
 
-	err = os.Remove(sourcePath)
-	if err != nil {
-		return err
-	}
-	tx.Commit()
 	return nil
 }
 
