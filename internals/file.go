@@ -454,37 +454,12 @@ func DecryptFile(sourcePath, destinationPath, login, password string) (err error
 		}
 	}()
 
-	////////////////////////////
-	//////// header part //////
-	//////////////////////////
-
 	fileInfo, err := encryptedFile.Stat()
 	if err != nil {
 		return err
 	}
 
-	// retrieving "magic marker" some special bytes from header of file
-	marker := make([]byte, len(GetMagicString()))
-	byteCount, err := encryptedFile.Read(marker)
-	if err != nil {
-		return err
-	}
-	if byteCount != len(GetMagicString()) {
-		return errors.New("Not enough bytes read")
-	}
-	if !bytes.Equal(marker, GetMagicString()) {
-		return errors.New("File has no marker")
-	}
-	uid := make([]byte, 36)
-	// retrieving a file guid from encrypted file, it will be used to find the right symmetric decryption key in the database
-	byteCount, err = encryptedFile.Read(uid)
-	if err != nil {
-		return err
-	}
-	if byteCount != 36 {
-		return errors.New("Not an exact amount of byted read")
-	}
-	_, err = uuid.ParseBytes(uid)
+	uid, err := validateHeaderAndGetUUID(encryptedFile)
 	if err != nil {
 		return err
 	}
@@ -523,7 +498,7 @@ func DecryptFile(sourcePath, destinationPath, login, password string) (err error
 	}
 
 	progressBar := progressbar.DefaultBytes(
-		fileInfo.Size()-int64(len(marker)+len(uid)),
+		fileInfo.Size()-int64(len(GetMagicString())+len(uid)),
 		"Decrypting: ",
 	)
 
@@ -553,6 +528,35 @@ func DecryptFile(sourcePath, destinationPath, login, password string) (err error
 	///////////////////////////
 
 	return nil
+}
+
+func validateHeaderAndGetUUID(file *os.File) (uid []byte, err error) {
+	marker := make([]byte, len(GetMagicString()))
+	byteCount, err := file.Read(marker)
+	if err != nil {
+		return nil, err
+	}
+	if byteCount != len(GetMagicString()) {
+		return nil, errors.New("Not enough bytes read")
+	}
+	if !bytes.Equal(marker, GetMagicString()) {
+		return nil, errors.New("File has no marker")
+	}
+	uid = make([]byte, 36)
+	// retrieving a file guid from encrypted file, it will be used to find the right symmetric decryption key in the database
+	byteCount, err = file.Read(uid)
+
+	if err != nil {
+		return nil, err
+	}
+	if byteCount != 36 {
+		return nil, errors.New("Not an exact amount of byted read")
+	}
+	_, err = uuid.ParseBytes(uid)
+	if err != nil {
+		return nil, err
+	}
+	return uid, nil
 }
 
 func RemovePathIfTrue(path string, remove *bool) error {

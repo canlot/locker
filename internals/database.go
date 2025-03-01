@@ -5,6 +5,7 @@ import (
 	"fmt"
 	bolt "go.etcd.io/bbolt"
 	"log"
+	"path/filepath"
 )
 
 var Database *bolt.DB
@@ -32,9 +33,12 @@ func init() {
 
 }
 
+var DatabasePath string
+
 func CreateDatabaseIfNotExists() {
 	var err error
-	Database, err = bolt.Open("db_locker.db", 0600, nil)
+	dbPath := filepath.Join(DatabasePath, "db_locker.db")
+	Database, err = bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
