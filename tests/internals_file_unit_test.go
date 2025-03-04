@@ -16,9 +16,9 @@ import (
 	"testing"
 )
 
-var baseFolder string
-var testFolder string
-var artifactsFolder string
+var BaseFolderAbsolute string
+var TestFolderAbsolute string
+var ArtifactsFolderAbsolute string
 var currentFolder string
 
 var encryptedFilePathRelative string
@@ -74,21 +74,24 @@ func createPseudoEncryptedFile(filePath string) (err error) {
 	file.Write(uid)
 	return nil
 }
-func setUpTest() error {
+func SetUpTestFolders() error {
 	path, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	baseFolder = path
+	if !filepath.IsAbs(path) {
+		return err
+	}
+	BaseFolderAbsolute = path
 
-	artifactsFolder = filepath.Join(path, "artifacts")
+	ArtifactsFolderAbsolute = filepath.Join(path, "artifacts")
 
-	testFolder = filepath.Join(path, "running_testcases")
-	err = os.Mkdir(testFolder, 0777)
+	TestFolderAbsolute = filepath.Join(path, "running_testcases")
+	err = os.Mkdir(TestFolderAbsolute, 0777)
 	if err != nil && (!errors.Is(err, os.ErrExist)) {
 		return err
 	}
-	currentFolder = testFolder
+	currentFolder = TestFolderAbsolute
 	err = os.Chdir(currentFolder)
 	if err != nil {
 		return err
@@ -101,11 +104,11 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 func teardownTest() {
-	err := os.Chdir(baseFolder)
+	err := os.Chdir(BaseFolderAbsolute)
 	if err != nil {
 		panic(err)
 	}
-	err = os.RemoveAll(testFolder)
+	err = os.RemoveAll(TestFolderAbsolute)
 	if err != nil {
 		panic(err)
 	}
@@ -115,16 +118,16 @@ func pathAndPrint(path string) string {
 	return path
 }
 func Test_GetPathsForEncryption(t *testing.T) {
-	setUpTest()
+	SetUpTestFolders()
 	defer teardownTest()
 
 	// copy valid files for testing
 	plainFile := "testfile.txt"
 	encryptedFile := "encrypted_file.txt.lock"
 
-	err := copyFile(filepath.Join(artifactsFolder, plainFile), filepath.Join(currentFolder, plainFile))
+	err := copyFile(filepath.Join(ArtifactsFolderAbsolute, plainFile), filepath.Join(currentFolder, plainFile))
 	assert.Nil(t, err)
-	err = copyFile(filepath.Join(artifactsFolder, encryptedFile), filepath.Join(currentFolder, encryptedFile))
+	err = copyFile(filepath.Join(ArtifactsFolderAbsolute, encryptedFile), filepath.Join(currentFolder, encryptedFile))
 	assert.Nil(t, err)
 
 	//invalid case, no source file provided
@@ -155,7 +158,7 @@ func Test_GetPathsForEncryption(t *testing.T) {
 	////
 
 	//invalid case, file already in destination, and no destination filename given, it should generate the same name as the file that already exists
-	err = copyFile(filepath.Join(artifactsFolder, encryptedFile), filepath.Join(testDirRelative, "testfile.txt.lock"))
+	err = copyFile(filepath.Join(ArtifactsFolderAbsolute, encryptedFile), filepath.Join(testDirRelative, "testfile.txt.lock"))
 	assert.Nil(t, err)
 
 	_, _, err = internals.GetPathsForEncryption(plainFile, testDirRelative)
@@ -172,15 +175,15 @@ func Test_GetPathsForEncryption(t *testing.T) {
 	assert.Equal(t, dPath, encryptedFilePath)
 
 	//valid case, providing source file and directory as destination, dest file should be dir + filename + .lock
-	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, testFolder)
+	sPath, dPath, err = internals.GetPathsForEncryption(unecryptedFilePath, TestFolderAbsolute)
 	assert.Nil(t, err)
 	assert.Equal(t, sPath, unecryptedFilePath)
-	assert.Equal(t, dPath, filepath.Join(testFolder, "testfile.txt.lock"))
+	assert.Equal(t, dPath, filepath.Join(TestFolderAbsolute, "testfile.txt.lock"))
 
 }
 
 func Test_GetPathsForDecryption(t *testing.T) {
-	setUpTest()
+	SetUpTestFolders()
 	defer teardownTest()
 	// invalid case, no source Path
 	_, _, err := internals.GetPathsForDecryption("", decryptedFilePathAbsolute)
@@ -192,7 +195,7 @@ func Test_GetPathsForDecryption(t *testing.T) {
 }
 
 func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
-	setUpTest()
+	SetUpTestFolders()
 	defer teardownTest()
 	bytePassword, err := scrypt.Key([]byte("test"), nil, 32768, 8, 2, 32)
 	if err != nil {
@@ -203,7 +206,7 @@ func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 	unencryptedFileName := "testfile.txt"
 	encryptedFileName := "testfile.txt.lock"
 	decryptedFileName := "testfile_decrypted.txt"
-	err = copyFile(filepath.Join(artifactsFolder, unencryptedFileName), filepath.Join(currentFolder, unencryptedFileName))
+	err = copyFile(filepath.Join(ArtifactsFolderAbsolute, unencryptedFileName), filepath.Join(currentFolder, unencryptedFileName))
 
 	unencryptedFileHash, err := getSha256HashFile(unencryptedFileName)
 	if err != nil {
