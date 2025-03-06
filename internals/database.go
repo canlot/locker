@@ -34,10 +34,15 @@ func init() {
 }
 
 var DatabasePath string
+var DatabaseName string
 
 func CreateDatabaseIfNotExists() {
 	var err error
-	dbPath := filepath.Join(DatabasePath, "db_locker.db")
+	var dbName string
+	if DatabaseName == "" {
+		dbName = "db_locker.db"
+	}
+	dbPath := filepath.Join(DatabasePath, dbName)
 	Database, err = bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
