@@ -70,23 +70,14 @@ func createPseudoEncryptedFile(filePath string) (err error) {
 func TestMain(m *testing.M) {
 	m.Run()
 }
-func teardownTest() {
-	err := os.Chdir(BaseFolderAbsolute)
-	if err != nil {
-		panic(err)
-	}
-	err = os.RemoveAll(TestFolderAbsolute)
-	if err != nil {
-		panic(err)
-	}
-}
+
 func pathAndPrint(path string) string {
 	fmt.Println(path)
 	return path
 }
 func Test_GetPathsForEncryption(t *testing.T) {
 	SetUpTestFolders()
-	defer teardownTest()
+	defer TeardownTest()
 
 	// copy valid files for testing
 	plainFile := "testfile.txt"
@@ -151,7 +142,7 @@ func Test_GetPathsForEncryption(t *testing.T) {
 
 func Test_GetPathsForDecryption(t *testing.T) {
 	SetUpTestFolders()
-	defer teardownTest()
+	defer TeardownTest()
 	// invalid case, no source Path
 	_, _, err := internals.GetPathsForDecryption("", decryptedFilePathAbsolute)
 	assert.NotNil(t, err)
@@ -163,7 +154,7 @@ func Test_GetPathsForDecryption(t *testing.T) {
 
 func Test_EnsureEncryptionAndDecryptionHaveSameResult(t *testing.T) {
 	SetUpTestFolders()
-	defer teardownTest()
+	defer TeardownTest()
 	bytePassword, err := scrypt.Key([]byte("test"), nil, 32768, 8, 2, 32)
 	if err != nil {
 		t.Fail()

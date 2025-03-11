@@ -2,8 +2,10 @@ package tests
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 var BaseFolderAbsolute string
@@ -15,13 +17,18 @@ var currentFolder string
 var encryptedFilePathRelative string
 var decryptedFilePathAbsolute string
 
-func SetUpTestFolders() error {
-	path, err := os.Getwd()
-	if err != nil {
-		return err
+func SetUpTestFolders() (err error) {
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		err = errors.New("could not determine test folder")
 	}
+
+	path := filepath.Dir(file)
+	fmt.Printf("Current root test path: %s\n", path)
+
 	if !filepath.IsAbs(path) {
-		return err
+		return errors.New("TestFolderAbsolute is not an absolute path")
 	}
 	BaseFolderAbsolute = path
 
@@ -39,4 +46,14 @@ func SetUpTestFolders() error {
 	}
 
 	return nil
+}
+func TeardownTest() {
+	err := os.Chdir(BaseFolderAbsolute)
+	if err != nil {
+		panic(err)
+	}
+	err = os.RemoveAll(TestFolderAbsolute)
+	if err != nil {
+		panic(err)
+	}
 }

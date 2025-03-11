@@ -10,6 +10,7 @@ import "main/tests"
 
 func Test_DatabaseCreation(t *testing.T) {
 	tests.SetUpTestFolders()
+	defer tests.TeardownTest()
 	DatabasePath = tests.TestFolderAbsolute
 
 	CreateDatabaseIfNotExists()
@@ -28,7 +29,15 @@ func Test_DatabaseCreation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	bucket := tx.Bucket([]byte("BucketLoginInformation"))
-	assert.NotNil(t, bucket)
+
+	bucketNames := []string{"BucketLoginInformation", "BucketLoginPrivateKeyEncrypted",
+		"BucketPublicKeyHash", "BucketPublicKey", "BucketDataPasswordEncrypted", "BucketDataInformation", "BucketDataEncrypted",
+		"BucketDataHash", "BucketFilePasswordEncrypted", "BucketFileInformation", "BucketFileHash", "BucketVersion"}
+
+	var bucket *bolt.Bucket
+	for _, bucketName := range bucketNames {
+		bucket = tx.Bucket([]byte(bucketName))
+		assert.NotNil(t, bucket)
+	}
 
 }
