@@ -75,7 +75,7 @@ To restore an encrypted file:
 `.\locker.exe decrypt file --source "C:\Users\Jakob\Desktop\memtest86-usb.zip.lock" --destination C:\Users\Jakob\Downloads\ --login jakob`
 
 
-Roadmap 
+## Roadmap 
 
 Road to 100% Unit/Integration tests 
 
