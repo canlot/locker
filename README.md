@@ -81,6 +81,6 @@ Road to 100% Unit/Integration tests
 
 
 
-License
+## License
 
 MIT License – feel free to use and contribute.
