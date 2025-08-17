@@ -1,5 +1,9 @@
-**Disclaimer 1:** This tool is currently in an alpha version. It is not intended for production use. Use it at your own risk.  
-**Disclaimer 2:** This README was created with the assistance of ChatGPT. The source code **is entirely written by myself**
+
+>[!CAUTION]
+>**Disclaimer 1:** This tool is currently in an alpha version. It is not intended for production use. Use it at your own risk.
+
+>[!IMPORTANT]
+>**Disclaimer 2:** This README was created with the assistance of ChatGPT. The source code **is entirely written by myself**
 
 # locker 
 
@@ -73,6 +77,10 @@ After encryption, the original source file is deleted.
 To restore an encrypted file:
 
 `.\locker.exe decrypt file --source "C:\Users\Jakob\Desktop\memtest86-usb.zip.lock" --destination C:\Users\Jakob\Downloads\ --login jakob`
+
+### Basic application flow overview
+
+<img width="1875" height="881" alt="Screenshot locker" src="https://github.com/user-attachments/assets/e1d1a12b-1d69-4924-8068-c14ec9711c5a" />
 
 
 ## Roadmap 
