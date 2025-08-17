@@ -1,5 +1,5 @@
 **Disclaimer 1:** This tool is currently in an alpha version. It is not intended for production use. Use it at your own risk.  
-**Disclaimer 2:** This README was created with the assistance of ChatGPT. The source code **is not**
+**Disclaimer 2:** This README was created with the assistance of ChatGPT. The source code **is entirely written by myself**
 
 # locker 
 
