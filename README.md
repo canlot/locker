@@ -51,7 +51,7 @@ You can encrypt text (e.g. a password):
 
 To view all stored encrypted data:
 
-.\locker.exe show data
+`.\locker.exe show data`
 
 3. Decrypt data
 
